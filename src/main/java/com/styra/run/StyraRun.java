@@ -13,8 +13,11 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Future;
+import java.util.function.Predicate;
 
 public class StyraRun {
+    private static final Predicate<Result<?>> DEFAULT_CHECK_PREDICATE = (result) -> result.asSafeBoolean(false);
+
     private final ApiClient apiClient;
     private final Json json;
     private final URL baseUrl;
@@ -55,6 +58,22 @@ public class StyraRun {
                         return Result.fromResponseMap(value);
                     }
                 });
+    }
+
+    public CompletableFuture<Boolean> check(String path) {
+        return check(path, null, DEFAULT_CHECK_PREDICATE);
+    }
+
+    public CompletableFuture<Boolean> check(String path, Object input) {
+        return check(path, input, DEFAULT_CHECK_PREDICATE);
+    }
+
+    public CompletableFuture<Boolean> check(String path, Predicate<Result<?>> predicate) {
+        return check(path, null, predicate);
+    }
+
+    public CompletableFuture<Boolean> check(String path, Object input, Predicate<Result<?>> predicate) {
+        return query(path, input).thenApply((predicate::test));
     }
 
     private CompletableFuture<String> toJson(Object value) {

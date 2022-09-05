@@ -220,6 +220,67 @@ public class StyraRunTests {
         assertEquals(expectedResult, result.getResult(), "result");
         assertEquals(expectedAttributes, result.getAttributes(), "attributes");
     }
+
+    static Stream<Arguments> check_predicate() {
+        return Stream.of(
+                Arguments.of("{}", false, Result.empty()),
+                Arguments.of("{}", true, Result.empty()),
+                Arguments.of("{\"result\": true}", true, new Result<>(true)),
+                Arguments.of("{\"result\": false}", false, new Result<>(false)),
+                Arguments.of("{\"result\": 42}", false, new Result<>(42)),
+                Arguments.of("{\"result\": 42}", true, new Result<>(42))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void check_predicate(String responseBody, boolean predicateResult, Result<?> expectedResult) throws ExecutionException, InterruptedException {
+        var mockedApiClient = new ApiClientMock() {
+            @Override
+            public CompletableFuture<ApiResponse> post(URL url, String body, Map<String, String> headers) {
+                return CompletableFuture.completedFuture(new ApiResponse(200, responseBody));
+            }
+        };
+
+       var decision = StyraRun.builder("https://example.com", "foobar")
+                .apiClient(mockedApiClient)
+                .build()
+                .check("/", (result) -> {
+                    assertEquals(expectedResult, result);
+                    return predicateResult;
+                })
+                .get();
+
+       assertEquals(predicateResult, decision);
+    }
+
+    static Stream<Arguments> check_defaultPredicate() {
+        return Stream.of(
+                Arguments.of("{}", false),
+                Arguments.of("{\"result\": true}", true),
+                Arguments.of("{\"result\": false}", false),
+                Arguments.of("{\"result\": 42}", false)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void check_defaultPredicate(String responseBody, boolean expectedDecision) throws ExecutionException, InterruptedException {
+        var mockedApiClient = new ApiClientMock() {
+            @Override
+            public CompletableFuture<ApiResponse> post(URL url, String body, Map<String, String> headers) {
+                return CompletableFuture.completedFuture(new ApiResponse(200, responseBody));
+            }
+        };
+
+        var decision = StyraRun.builder("https://example.com", "foobar")
+                .apiClient(mockedApiClient)
+                .build()
+                .check("/")
+                .get();
+
+        assertEquals(expectedDecision, decision);
+    }
 }
 
 abstract class ApiClientMock implements ApiClient {

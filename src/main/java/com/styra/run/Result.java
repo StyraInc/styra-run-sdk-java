@@ -11,6 +11,10 @@ public class Result<T> {
     private final T result;
     private final Map<String, ?> attributes;
 
+    public Result(T result) {
+        this(result, Collections.emptyMap());
+    }
+
     public Result(T result, Map<String, ?> attributes) {
         this.result = result;
         this.attributes = Collections.unmodifiableMap(attributes);
@@ -31,7 +35,11 @@ public class Result<T> {
     }
 
     public boolean asBoolean() {
-        return (Boolean) this.result;
+        return (Boolean) result;
+    }
+
+    public boolean asSafeBoolean(boolean def) {
+        return result instanceof Boolean ? (Boolean) result : def;
     }
 
     public Map<String, ?> getAttributes() {
