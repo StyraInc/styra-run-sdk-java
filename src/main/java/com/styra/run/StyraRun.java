@@ -76,6 +76,68 @@ public class StyraRun {
         return query(path, input).thenApply((predicate::test));
     }
 
+    public CompletableFuture<Result<?>> getData(String path) {
+        Objects.requireNonNull(path, "path must not be null");
+
+        return makeUrl("data", path)
+                .thenCompose((url) -> apiClient.get(url, headers))
+                .thenApply((response) -> {
+                    if (!response.isSuccessful()) {
+                        throw new CompletionException(new StyraRunHttpException(
+                                response.getStatusCode(), response.getBody(),
+                                json.toOptionalMap(response.getBody())
+                                        .map(ApiError::fromMap)
+                                        .orElse(null)));
+                    } else {
+                        Map<String, ?> value = json.toOptionalMap(response.getBody())
+                                .orElse(Collections.emptyMap());
+                        return Result.fromResponseMap(value);
+                    }
+                });
+    }
+
+    public CompletableFuture<Result<Void>> putData(String path, Object data) {
+        Objects.requireNonNull(path, "path must not be null");
+        Objects.requireNonNull(data, "data must not be null");
+
+        return makeUrl("data", path)
+                .thenCombine(toJson(data), ApiRequest::new)
+                .thenCompose((request) -> apiClient.put(request.url, request.body, headers))
+                .thenApply((response) -> {
+                    if (!response.isSuccessful()) {
+                        throw new CompletionException(new StyraRunHttpException(
+                                response.getStatusCode(), response.getBody(),
+                                json.toOptionalMap(response.getBody())
+                                        .map(ApiError::fromMap)
+                                        .orElse(null)));
+                    } else {
+                        Map<String, ?> attributes = json.toOptionalMap(response.getBody())
+                                .orElse(Collections.emptyMap());
+                        return Result.empty(attributes);
+                    }
+                });
+    }
+
+    public CompletableFuture<Result<Void>> deleteData(String path) {
+        Objects.requireNonNull(path, "path must not be null");
+
+        return makeUrl("data", path)
+                .thenCompose((url) -> apiClient.delete(url, headers))
+                .thenApply((response) -> {
+                    if (!response.isSuccessful()) {
+                        throw new CompletionException(new StyraRunHttpException(
+                                response.getStatusCode(), response.getBody(),
+                                json.toOptionalMap(response.getBody())
+                                        .map(ApiError::fromMap)
+                                        .orElse(null)));
+                    } else {
+                        Map<String, ?> attributes = json.toOptionalMap(response.getBody())
+                                .orElse(Collections.emptyMap());
+                        return Result.empty(attributes);
+                    }
+                });
+    }
+
     private CompletableFuture<String> toJson(Object value) {
         return CompletableFuture.supplyAsync(() -> {
             try {

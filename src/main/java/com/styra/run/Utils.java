@@ -30,6 +30,14 @@ public interface Utils {
                 throw new StyraRunException("Failed to construct API URI", e);
             }
         }
+
+        public static URL makeUrl(String url) {
+            try {
+                return new URL(url);
+            } catch (MalformedURLException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     final class Nullable {

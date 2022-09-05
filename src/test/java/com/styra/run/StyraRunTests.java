@@ -15,15 +15,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class StyraRunTests {
-    public static final String RESULT_TRUE = "{\"result\": true}";
-    public static final String RESULT_EMPTY = "{}";
+    private static final String TRUE_RESULT = "{\"result\": true}";
+    private static final String EMPTY_RESULT = "{}";
+    private static final String DEFAULT_BASE_URL = "https://example.com";
+    private static final String DEFAULT_PATH = "foo/bar";
+    private static final URL DEFAULT_DATA_URL = Utils.Url.makeUrl(String.format("%s/data/%s", DEFAULT_BASE_URL, DEFAULT_PATH));
+    public static final String DEFAULT_TOKEN = "foobar";
 
     @Test
     void builder() {
@@ -48,11 +51,11 @@ public class StyraRunTests {
             @Override
             public CompletableFuture<ApiResponse> post(URL url, String body, Map<String, String> headers) {
                 assertEquals(String.format("Bearer %s", token), headers.get("Authorization"));
-                return CompletableFuture.completedFuture(new ApiResponse(200, RESULT_TRUE));
+                return CompletableFuture.completedFuture(new ApiResponse(200, TRUE_RESULT));
             }
         };
 
-        StyraRun.builder("http://example.com", token)
+        StyraRun.builder(DEFAULT_BASE_URL, token)
                 .apiClient(mockedApiClient)
                 .build()
                 .query("/")
@@ -78,12 +81,12 @@ public class StyraRunTests {
             @Override
             public CompletableFuture<ApiResponse> post(URL url, String body, Map<String, String> headers) {
                 assertEquals(expectedUrl, url);
-                return CompletableFuture.completedFuture(new ApiResponse(200, RESULT_TRUE));
+                return CompletableFuture.completedFuture(new ApiResponse(200, TRUE_RESULT));
             }
         };
 
         try {
-            StyraRun.builder(url, "foobar")
+            StyraRun.builder(url, DEFAULT_TOKEN)
                     .apiClient(mockedApiClient)
                     .build()
                     .query(path)
@@ -114,26 +117,22 @@ public class StyraRunTests {
         var mockedApiClient = new ApiClientMock() {
             @Override
             public CompletableFuture<ApiResponse> post(URL url, String body, Map<String, String> headers) {
-                try {
-                    assertEquals(JSON.std.anyFrom(expectedBody), JSON.std.anyFrom(body));
-                    if (input != null) {
-                        assertEquals(JSON.std.anyFrom(body), Map.of("input", input));
-                    } else {
-                        assertEquals(JSON.std.anyFrom(body), Map.of());
-                    }
-
-                    return CompletableFuture.completedFuture(new ApiResponse(200, RESULT_TRUE));
-                } catch (IOException e) {
-                    fail(e);
-                    throw new RuntimeException(e);
+                assertJsonEquals(expectedBody, body);
+                if (input != null) {
+                    assertJsonEquals(body, Map.of("input", input));
+                } else {
+                    assertJsonEquals(body, Map.of());
                 }
+
+                return CompletableFuture.completedFuture(new ApiResponse(200, TRUE_RESULT));
+
             }
         };
 
-        StyraRun.builder("https://example.com", "foobar")
+        StyraRun.builder(DEFAULT_BASE_URL, DEFAULT_TOKEN)
                 .apiClient(mockedApiClient)
                 .build()
-                .query("/my/path", input)
+                .query(DEFAULT_PATH, input)
                 .get();
     }
 
@@ -171,10 +170,10 @@ public class StyraRunTests {
         };
 
         try {
-            StyraRun.builder("https://example.com", "foobar")
+            StyraRun.builder(DEFAULT_BASE_URL, "foobar")
                     .apiClient(mockedApiClient)
                     .build()
-                    .query("/my/path")
+                    .query(DEFAULT_PATH)
                     .get();
         } catch (ExecutionException e) {
             if (expectException) {
@@ -211,13 +210,13 @@ public class StyraRunTests {
             }
         };
 
-        var result = StyraRun.builder("https://example.com", "foobar")
+        var result = StyraRun.builder(DEFAULT_BASE_URL, DEFAULT_TOKEN)
                 .apiClient(mockedApiClient)
                 .build()
-                .query("/")
+                .query(DEFAULT_PATH)
                 .get();
 
-        assertEquals(expectedResult, result.getResult(), "result");
+        assertEquals(expectedResult, result.get(), "result");
         assertEquals(expectedAttributes, result.getAttributes(), "attributes");
     }
 
@@ -242,16 +241,16 @@ public class StyraRunTests {
             }
         };
 
-       var decision = StyraRun.builder("https://example.com", "foobar")
+        var decision = StyraRun.builder(DEFAULT_BASE_URL, DEFAULT_TOKEN)
                 .apiClient(mockedApiClient)
                 .build()
-                .check("/", (result) -> {
+                .check(DEFAULT_PATH, (result) -> {
                     assertEquals(expectedResult, result);
                     return predicateResult;
                 })
                 .get();
 
-       assertEquals(predicateResult, decision);
+        assertEquals(predicateResult, decision);
     }
 
     static Stream<Arguments> check_defaultPredicate() {
@@ -273,13 +272,116 @@ public class StyraRunTests {
             }
         };
 
-        var decision = StyraRun.builder("https://example.com", "foobar")
+        var decision = StyraRun.builder(DEFAULT_BASE_URL, DEFAULT_TOKEN)
                 .apiClient(mockedApiClient)
                 .build()
-                .check("/")
+                .check(DEFAULT_PATH)
                 .get();
 
         assertEquals(expectedDecision, decision);
+    }
+
+    static Stream<Arguments> getData() {
+        return Stream.of(
+                Arguments.of("{}", null),
+                Arguments.of("{\"foo\": \"bar\"}", null),
+                Arguments.of("{\"result\": true}", true),
+                Arguments.of("{\"result\": false}", false),
+                Arguments.of("{\"result\": 42}", 42),
+                Arguments.of("{\"result\": 13.37}", 13.37),
+                Arguments.of("{\"result\": \"bar\"}", "bar"),
+                Arguments.of("{\"result\": {\"foo\": \"bar\"}}", Map.of("foo", "bar")),
+                Arguments.of("{\"result\": [\"do\", \"re\", \"mi\"]}", List.of("do", "re", "mi"))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void getData(String responseBody, Object expectedData) throws ExecutionException, InterruptedException {
+        var mockedApiClient = new ApiClientMock() {
+            @Override
+            public CompletableFuture<ApiResponse> get(URL url, Map<String, String> headers) {
+                assertEquals(DEFAULT_DATA_URL, url);
+                return CompletableFuture.completedFuture(new ApiResponse(200, responseBody));
+            }
+        };
+
+        var result = StyraRun.builder(DEFAULT_BASE_URL, DEFAULT_TOKEN)
+                .apiClient(mockedApiClient)
+                .build()
+                .getData(DEFAULT_PATH)
+                .get();
+
+        assertEquals(expectedData, result.get());
+    }
+
+    static Stream<Arguments> putData() {
+        return Stream.of(
+                Arguments.of(true, "true"),
+                Arguments.of("true", "\"true\""),
+                Arguments.of(42, "42"),
+                Arguments.of(13.37, "13.37"),
+                Arguments.of(Map.of("foo", "bar"), "{\"foo\": \"bar\"}"),
+                Arguments.of(List.of("do", "re", "mi"), "[\"do\", \"re\", \"mi\"]")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void putData(Object data, String expectedRequestBody) throws ExecutionException, InterruptedException {
+        var mockedApiClient = new ApiClientMock() {
+            @Override
+            public CompletableFuture<ApiResponse> put(URL url, String body, Map<String, String> headers) {
+                assertEquals(DEFAULT_DATA_URL, url);
+                assertJsonEquals(expectedRequestBody, body);
+                return CompletableFuture.completedFuture(new ApiResponse(200, EMPTY_RESULT));
+            }
+        };
+
+        var result = StyraRun.builder(DEFAULT_BASE_URL, DEFAULT_TOKEN)
+                .apiClient(mockedApiClient)
+                .build()
+                .putData(DEFAULT_PATH, data)
+                .get();
+
+        Assertions.assertNull(result.get());
+    }
+
+    @Test
+    void deleteData() throws ExecutionException, InterruptedException {
+        var mockedApiClient = new ApiClientMock() {
+            @Override
+            public CompletableFuture<ApiResponse> delete(URL url, Map<String, String> headers) {
+                assertEquals(DEFAULT_DATA_URL, url);
+                return CompletableFuture.completedFuture(new ApiResponse(200, EMPTY_RESULT));
+            }
+        };
+
+        var result = StyraRun.builder(DEFAULT_BASE_URL, DEFAULT_TOKEN)
+                .apiClient(mockedApiClient)
+                .build()
+                .deleteData(DEFAULT_PATH)
+                .get();
+
+        assertNull(result.get());
+    }
+
+    static void assertJsonEquals(String expected, String actual) {
+        try {
+            assertEquals(JSON.std.anyFrom(expected), JSON.std.anyFrom(actual));
+        } catch (IOException e) {
+            fail(e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    static void assertJsonEquals(String expected, Object actual) {
+        try {
+            assertEquals(JSON.std.anyFrom(expected), actual);
+        } catch (IOException e) {
+            fail(e);
+            throw new RuntimeException(e);
+        }
     }
 }
 
@@ -292,6 +394,11 @@ abstract class ApiClientMock implements ApiClient {
     @Override
     public CompletableFuture<ApiResponse> put(URL url, String body, Map<String, String> headers) {
         throw new IllegalStateException("Unexpected PUT request");
+    }
+
+    @Override
+    public CompletableFuture<ApiResponse> post(URL url, String body, Map<String, String> headers) {
+        throw new IllegalStateException("Unexpected POST request");
     }
 
     @Override

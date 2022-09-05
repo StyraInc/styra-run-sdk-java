@@ -24,13 +24,17 @@ public class Result<T> {
         return EMPTY_RESULT;
     }
 
+    public static Result<Void> empty(Map<String, ?> attributes) {
+        return new Result<>(null, attributes);
+    }
+
     public static Result<?> fromResponseMap(Map<String, ?> map) {
         return new Result<Object>(map.get("result"), map.entrySet().stream()
                 .filter((e) -> !"result".equals(e.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
     }
 
-    public T getResult() {
+    public T get() {
         return result;
     }
 
