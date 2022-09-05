@@ -4,12 +4,9 @@ import com.fasterxml.jackson.jr.ob.JSON;
 import com.styra.run.Utils.Nullable;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Future;
@@ -20,15 +17,40 @@ public class StyraRun {
 
     private final ApiClient apiClient;
     private final Json json;
-    private final URL baseUrl;
-    private final Map<String, String> headers;
+    private final URI baseUri;
+    private final String token;
 
-    private StyraRun(URL url, String token, ApiClient apiClient, Json json) {
-        this.baseUrl = url;
-        this.headers = Collections.singletonMap(
-                "Authorization", String.format("Bearer %s", token));
+    private StyraRun(URI uri, String token, ApiClient apiClient, Json json) {
+        this.baseUri = uri;
+        this.token = token;
         this.apiClient = apiClient;
         this.json = json;
+    }
+
+    private class HeadersBuilder {
+        private final Map<String, String> headers = new HashMap<>();
+
+        HeadersBuilder authorization(String token) {
+            headers.put("Authorization", String.format("Bearer %s", token));
+            return this;
+        }
+
+        HeadersBuilder contentType(String contentType) {
+            headers.put("Content-Type", contentType);
+            return this;
+        }
+
+        HeadersBuilder json() {
+            return contentType("application/json");
+        }
+
+        Map<String, String> toMap() {
+            return Collections.unmodifiableMap(headers);
+        }
+    }
+
+    private HeadersBuilder makeHeadersBuilder() {
+        return new HeadersBuilder().authorization(token);
     }
 
     public Future<Result<?>> query(String path) {
@@ -38,13 +60,14 @@ public class StyraRun {
     public CompletableFuture<Result<?>> query(String path, Object input) {
         Objects.requireNonNull(path, "path must not be null");
 
+        HeadersBuilder headers = makeHeadersBuilder().json();
         Map<String, ?> body = Nullable.map(input,
                 (v) -> Collections.singletonMap("input", input),
                 Collections.emptyMap());
 
-        return makeUrl("data", path)
+        return makeUri("data", path)
                 .thenCombine(toJson(body), ApiRequest::new)
-                .thenCompose((request) -> apiClient.post(request.url, request.body, headers))
+                .thenCompose((request) -> apiClient.post(request.uri, request.body, headers.toMap()))
                 .thenApply(this::handleResponse)
                 .thenApply(Result::fromResponseMap);
     }
@@ -68,8 +91,9 @@ public class StyraRun {
     public CompletableFuture<Result<?>> getData(String path) {
         Objects.requireNonNull(path, "path must not be null");
 
-        return makeUrl("data", path)
-                .thenCompose((url) -> apiClient.get(url, headers))
+        HeadersBuilder headers = makeHeadersBuilder();
+        return makeUri("data", path)
+                .thenCompose((url) -> apiClient.get(url, headers.toMap()))
                 .thenApply(this::handleResponse)
                 .thenApply(Result::fromResponseMap);
     }
@@ -78,9 +102,10 @@ public class StyraRun {
         Objects.requireNonNull(path, "path must not be null");
         Objects.requireNonNull(data, "data must not be null");
 
-        return makeUrl("data", path)
+        HeadersBuilder headers = makeHeadersBuilder().json();
+        return makeUri("data", path)
                 .thenCombine(toJson(data), ApiRequest::new)
-                .thenCompose((request) -> apiClient.put(request.url, request.body, headers))
+                .thenCompose((request) -> apiClient.put(request.uri, request.body, headers.toMap()))
                 .thenApply(this::handleResponse)
                 .thenApply(Result::empty);
     }
@@ -88,8 +113,9 @@ public class StyraRun {
     public CompletableFuture<Result<Void>> deleteData(String path) {
         Objects.requireNonNull(path, "path must not be null");
 
-        return makeUrl("data", path)
-                .thenCompose((url) -> apiClient.delete(url, headers))
+        HeadersBuilder headers = makeHeadersBuilder().json();
+        return makeUri("data", path)
+                .thenCompose((url) -> apiClient.delete(url, headers.toMap()))
                 .thenApply(this::handleResponse)
                 .thenApply(Result::empty);
     }
@@ -117,15 +143,14 @@ public class StyraRun {
         }, Runnable::run);
     }
 
-    private CompletableFuture<URL> makeUrl(String... path) {
-        return CompletableFuture.supplyAsync(() -> {
-
-            try {
-                return Utils.Url.appendPath(baseUrl, path);
-            } catch (StyraRunException e) {
-                throw new CompletionException(e);
-            }
-        }, Runnable::run);
+    private CompletableFuture<URI> makeUri(String... path) {
+        CompletableFuture<URI> future = new CompletableFuture<>();
+        try {
+            future.complete(Utils.Url.appendPath(baseUri, path));
+        } catch (StyraRunException e) {
+            future.completeExceptionally(e);
+        }
+        return future;
     }
 
     public static Builder builder(String url, String token) {
@@ -133,13 +158,13 @@ public class StyraRun {
     }
 
     public static final class Builder {
-        private final String url;
+        private final String uri;
         private final String token;
         private ApiClient apiClient;
         private Json json;
 
         public Builder(String url, String token) {
-            this.url = Objects.requireNonNull(url, "url must not be null");
+            this.uri = Objects.requireNonNull(url, "url must not be null");
             this.token = Objects.requireNonNull(token, "token must not be null");
         }
 
@@ -154,29 +179,29 @@ public class StyraRun {
         }
 
         public StyraRun build() {
-            URL typedUrl;
+            URI typedUri;
             try {
-                typedUrl = new URL(url);
-            } catch (MalformedURLException e) {
-                throw new IllegalStateException("Malformed API URL", e);
+                typedUri = new URI(uri);
+            } catch (URISyntaxException e) {
+                throw new IllegalStateException("Malformed API URI", e);
             }
 
             ApiClient apiClient = Nullable.firstNonNull(
-                    () -> this.apiClient, OkHttpApiClient::new);
+                    () -> this.apiClient, ApiClientLoader.loadDefaultClient()::create);
 
             Json json = Nullable.firstNonNull(
                     () -> this.json, Json::new);
 
-            return new StyraRun(typedUrl, token, apiClient, json);
+            return new StyraRun(typedUri, token, apiClient, json);
         }
     }
 
     static class ApiRequest {
-        final URL url;
+        final URI uri;
         final String body;
 
-        private ApiRequest(URL url, String body) {
-            this.url = url;
+        private ApiRequest(URI uri, String body) {
+            this.uri = uri;
             this.body = body;
         }
     }

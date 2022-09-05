@@ -30,7 +30,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.squareup.okhttp3:okhttp:4.10.0'
+
     implementation 'com.fasterxml.jackson.jr:jackson-jr-objects:2.13.3'
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.0'

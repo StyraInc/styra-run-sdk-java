@@ -10,7 +10,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +25,7 @@ public class StyraRunTests {
     private static final String EMPTY_RESULT = "{}";
     private static final String DEFAULT_BASE_URL = "https://example.com";
     private static final String DEFAULT_PATH = "foo/bar";
-    private static final URL DEFAULT_DATA_URL = Utils.Url.makeUrl(String.format("%s/data/%s", DEFAULT_BASE_URL, DEFAULT_PATH));
+    private static final URI DEFAULT_DATA_URI = URI.create(String.format("%s/data/%s", DEFAULT_BASE_URL, DEFAULT_PATH));
     public static final String DEFAULT_TOKEN = "foobar";
 
     @Test
@@ -39,8 +39,8 @@ public class StyraRunTests {
         assertEquals("token must not be null", tokenException.getMessage());
 
         var invalidUrlException = assertThrows(IllegalStateException.class,
-                () -> StyraRun.builder("invalid", "token").build());
-        assertEquals("Malformed API URL", invalidUrlException.getMessage());
+                () -> StyraRun.builder("invalid{}", "token").build());
+        assertEquals("Malformed API URI", invalidUrlException.getMessage());
     }
 
     @ParameterizedTest
@@ -49,7 +49,7 @@ public class StyraRunTests {
 
         var mockedApiClient = new ApiClientMock() {
             @Override
-            public CompletableFuture<ApiResponse> post(URL url, String body, Map<String, String> headers) {
+            public CompletableFuture<ApiResponse> post(URI uri, String body, Map<String, String> headers) {
                 assertEquals(String.format("Bearer %s", token), headers.get("Authorization"));
                 return CompletableFuture.completedFuture(new ApiResponse(200, TRUE_RESULT));
             }
@@ -76,11 +76,11 @@ public class StyraRunTests {
 
     @ParameterizedTest
     @MethodSource
-    void query_url(String url, String path, URL expectedUrl) throws ExecutionException, InterruptedException {
+    void query_url(String url, String path, URI expectedUri) throws ExecutionException, InterruptedException {
         var mockedApiClient = new ApiClientMock() {
             @Override
-            public CompletableFuture<ApiResponse> post(URL url, String body, Map<String, String> headers) {
-                assertEquals(expectedUrl, url);
+            public CompletableFuture<ApiResponse> post(URI uri, String body, Map<String, String> headers) {
+                assertEquals(expectedUri, uri);
                 return CompletableFuture.completedFuture(new ApiResponse(200, TRUE_RESULT));
             }
         };
@@ -116,7 +116,7 @@ public class StyraRunTests {
     void query_input(Object input, String expectedBody) throws ExecutionException, InterruptedException, MalformedURLException {
         var mockedApiClient = new ApiClientMock() {
             @Override
-            public CompletableFuture<ApiResponse> post(URL url, String body, Map<String, String> headers) {
+            public CompletableFuture<ApiResponse> post(URI uri, String body, Map<String, String> headers) {
                 assertJsonEquals(expectedBody, body);
                 if (input != null) {
                     assertJsonEquals(body, Map.of("input", input));
@@ -155,7 +155,7 @@ public class StyraRunTests {
     void query_statusCode(int statusCode, boolean expectException, String expectedCode, String expectedMessage) throws InterruptedException {
         var mockedApiClient = new ApiClientMock() {
             @Override
-            public CompletableFuture<ApiResponse> post(URL url, String body, Map<String, String> headers) {
+            public CompletableFuture<ApiResponse> post(URI uri, String body, Map<String, String> headers) {
                 var responseBody = new HashMap<String, String>();
                 Utils.Nullable.ifNotNull(expectedCode, (v) -> responseBody.put("code", v));
                 Utils.Nullable.ifNotNull(expectedMessage, (v) -> responseBody.put("message", v));
@@ -205,7 +205,7 @@ public class StyraRunTests {
     void query_result(String responseBody, Object expectedResult, Map<String, ?> expectedAttributes) throws ExecutionException, InterruptedException, MalformedURLException {
         var mockedApiClient = new ApiClientMock() {
             @Override
-            public CompletableFuture<ApiResponse> post(URL url, String body, Map<String, String> headers) {
+            public CompletableFuture<ApiResponse> post(URI uri, String body, Map<String, String> headers) {
                 return CompletableFuture.completedFuture(new ApiResponse(200, responseBody));
             }
         };
@@ -236,7 +236,7 @@ public class StyraRunTests {
     void check_predicate(String responseBody, boolean predicateResult, Result<?> expectedResult) throws ExecutionException, InterruptedException {
         var mockedApiClient = new ApiClientMock() {
             @Override
-            public CompletableFuture<ApiResponse> post(URL url, String body, Map<String, String> headers) {
+            public CompletableFuture<ApiResponse> post(URI uri, String body, Map<String, String> headers) {
                 return CompletableFuture.completedFuture(new ApiResponse(200, responseBody));
             }
         };
@@ -267,7 +267,7 @@ public class StyraRunTests {
     void check_defaultPredicate(String responseBody, boolean expectedDecision) throws ExecutionException, InterruptedException {
         var mockedApiClient = new ApiClientMock() {
             @Override
-            public CompletableFuture<ApiResponse> post(URL url, String body, Map<String, String> headers) {
+            public CompletableFuture<ApiResponse> post(URI uri, String body, Map<String, String> headers) {
                 return CompletableFuture.completedFuture(new ApiResponse(200, responseBody));
             }
         };
@@ -300,8 +300,8 @@ public class StyraRunTests {
     void getData(String responseBody, Object expectedData) throws ExecutionException, InterruptedException {
         var mockedApiClient = new ApiClientMock() {
             @Override
-            public CompletableFuture<ApiResponse> get(URL url, Map<String, String> headers) {
-                assertEquals(DEFAULT_DATA_URL, url);
+            public CompletableFuture<ApiResponse> get(URI uri, Map<String, String> headers) {
+                assertEquals(DEFAULT_DATA_URI, uri);
                 return CompletableFuture.completedFuture(new ApiResponse(200, responseBody));
             }
         };
@@ -331,8 +331,8 @@ public class StyraRunTests {
     void putData(Object data, String expectedRequestBody) throws ExecutionException, InterruptedException {
         var mockedApiClient = new ApiClientMock() {
             @Override
-            public CompletableFuture<ApiResponse> put(URL url, String body, Map<String, String> headers) {
-                assertEquals(DEFAULT_DATA_URL, url);
+            public CompletableFuture<ApiResponse> put(URI uri, String body, Map<String, String> headers) {
+                assertEquals(DEFAULT_DATA_URI, uri);
                 assertJsonEquals(expectedRequestBody, body);
                 return CompletableFuture.completedFuture(new ApiResponse(200, EMPTY_RESULT));
             }
@@ -351,8 +351,8 @@ public class StyraRunTests {
     void deleteData() throws ExecutionException, InterruptedException {
         var mockedApiClient = new ApiClientMock() {
             @Override
-            public CompletableFuture<ApiResponse> delete(URL url, Map<String, String> headers) {
-                assertEquals(DEFAULT_DATA_URL, url);
+            public CompletableFuture<ApiResponse> delete(URI uri, Map<String, String> headers) {
+                assertEquals(DEFAULT_DATA_URI, uri);
                 return CompletableFuture.completedFuture(new ApiResponse(200, EMPTY_RESULT));
             }
         };
@@ -387,22 +387,22 @@ public class StyraRunTests {
 
 abstract class ApiClientMock implements ApiClient {
     @Override
-    public CompletableFuture<ApiResponse> get(URL url, Map<String, String> headers) {
+    public CompletableFuture<ApiResponse> get(URI uri, Map<String, String> headers) {
         throw new IllegalStateException("Unexpected GET request");
     }
 
     @Override
-    public CompletableFuture<ApiResponse> put(URL url, String body, Map<String, String> headers) {
+    public CompletableFuture<ApiResponse> put(URI uri, String body, Map<String, String> headers) {
         throw new IllegalStateException("Unexpected PUT request");
     }
 
     @Override
-    public CompletableFuture<ApiResponse> post(URL url, String body, Map<String, String> headers) {
+    public CompletableFuture<ApiResponse> post(URI uri, String body, Map<String, String> headers) {
         throw new IllegalStateException("Unexpected POST request");
     }
 
     @Override
-    public CompletableFuture<ApiResponse> delete(URL url, Map<String, String> headers) {
+    public CompletableFuture<ApiResponse> delete(URI uri, Map<String, String> headers) {
         throw new IllegalStateException("Unexpected DELETE request");
     }
 }

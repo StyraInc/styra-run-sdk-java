@@ -1,7 +1,7 @@
 package com.styra.run;
 
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -22,20 +22,12 @@ public interface Utils {
                     .collect(Collectors.joining("/", "/", ""));
         }
 
-        public static URL appendPath(URL base, String... path) throws StyraRunException {
+        public static URI appendPath(URI base, String... path) throws StyraRunException {
             String joinedPath = joinPath(base.getPath(), path);
             try {
-                return new URL(base.getProtocol(), base.getHost(), base.getPort(), joinedPath);
-            } catch (MalformedURLException e) {
+                return new URI(base.getScheme(), base.getHost(), joinedPath, base.getFragment());
+            } catch (URISyntaxException e) {
                 throw new StyraRunException("Failed to construct API URI", e);
-            }
-        }
-
-        public static URL makeUrl(String url) {
-            try {
-                return new URL(url);
-            } catch (MalformedURLException e) {
-                throw new RuntimeException(e);
             }
         }
     }
