@@ -30,7 +30,7 @@ repositories {
 }
 
 dependencies {
-
+    implementation 'org.slf4j:slf4j-api:2.0.0'
     implementation 'com.fasterxml.jackson.jr:jackson-jr-objects:2.13.3'
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.0'

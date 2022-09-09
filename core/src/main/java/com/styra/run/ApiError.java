@@ -2,7 +2,7 @@ package com.styra.run;
 
 import java.util.Map;
 
-import static com.styra.run.Utils.Nullable.map;
+import static com.styra.run.Utils.Null.map;
 
 public class ApiError {
     private final String code;

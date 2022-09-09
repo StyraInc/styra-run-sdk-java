@@ -1,8 +1,6 @@
 package com.styra.run;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Result<T> {
@@ -28,14 +26,22 @@ public class Result<T> {
         return new Result<>(null, attributes);
     }
 
-    public static Result<?> fromResponseMap(Map<String, ?> map) {
-        return new Result<Object>(map.get("result"), map.entrySet().stream()
-                .filter((e) -> !"result".equals(e.getKey()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+    public static Result<?> fromResponseMap(Map<?, ?> map) {
+        return new Result<Object>(
+                map.get("result"),
+                map.entrySet().stream()
+                        .filter((e) -> !"result".equals(e.getKey()))
+                        .collect(Collectors.toMap(
+                                (entry) -> entry.getKey().toString(),
+                                Map.Entry::getValue)));
     }
 
     public T get() {
         return result;
+    }
+
+    public Optional<T> getOptional() {
+        return Optional.ofNullable(result);
     }
 
     public boolean asBoolean() {
@@ -44,6 +50,17 @@ public class Result<T> {
 
     public boolean asSafeBoolean(boolean def) {
         return result instanceof Boolean ? (Boolean) result : def;
+    }
+
+    public List<?> asList() {
+        return (List<?>) result;
+    }
+
+    public List<Result<?>> asResultList() {
+        return asList().stream()
+                .map(Map.class::cast)
+                .map(Result::fromResponseMap)
+                .collect(Collectors.toList());
     }
 
     public Map<String, ?> getAttributes() {
@@ -69,8 +86,7 @@ public class Result<T> {
 
     @Override
     public String toString() {
-        return "Result{" +
-                "result=" + result +
+        return "Result{" + result +
                 ", attributes=" + attributes +
                 '}';
     }

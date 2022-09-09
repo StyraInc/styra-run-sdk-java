@@ -157,8 +157,8 @@ public class StyraRunTests {
             @Override
             public CompletableFuture<ApiResponse> post(URI uri, String body, Map<String, String> headers) {
                 var responseBody = new HashMap<String, String>();
-                Utils.Nullable.ifNotNull(expectedCode, (v) -> responseBody.put("code", v));
-                Utils.Nullable.ifNotNull(expectedMessage, (v) -> responseBody.put("message", v));
+                Utils.Null.ifNotNull(expectedCode, (v) -> responseBody.put("code", v));
+                Utils.Null.ifNotNull(expectedMessage, (v) -> responseBody.put("message", v));
 
                 try {
                     return CompletableFuture.completedFuture(new ApiResponse(statusCode, JSON.std.asString(responseBody)));
@@ -180,7 +180,7 @@ public class StyraRunTests {
                 var cause = assertInstanceOf(StyraRunHttpException.class, e.getCause());
                 assertEquals(statusCode, cause.getStatusCode());
                 assertEquals(String.format("Unexpected status code: %d", statusCode), cause.getMessage());
-                Utils.Nullable.ifNotNull(expectedCode, (v) -> assertEquals(v, cause.getApiError().getCode()));
+                Utils.Null.ifNotNull(expectedCode, (v) -> assertEquals(v, cause.getApiError().getCode()));
             } else {
                 fail("Unexpected exception");
             }

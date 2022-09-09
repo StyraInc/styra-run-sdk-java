@@ -2,4 +2,5 @@ rootProject.name = 'styra-run-sdk-java'
 include 'core'
 include 'okhttp'
 include 'sdk'
+include 'servlet'
 

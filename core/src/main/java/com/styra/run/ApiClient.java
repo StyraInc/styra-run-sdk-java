@@ -26,6 +26,14 @@ public interface ApiClient {
         public String getBody() {
             return body;
         }
+
+        @Override
+        public String toString() {
+            return "ApiResponse{" +
+                    "statusCode=" + statusCode +
+                    ", body='" + body + '\'' +
+                    '}';
+        }
     }
 
     CompletableFuture<ApiResponse> get(URI uri, Map<String, String> headers);

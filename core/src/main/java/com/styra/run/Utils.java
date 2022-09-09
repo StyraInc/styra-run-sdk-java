@@ -2,7 +2,11 @@ package com.styra.run;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -32,7 +36,7 @@ public interface Utils {
         }
     }
 
-    final class Nullable {
+    final class Null {
         @SafeVarargs
         public static <T> T firstNonNull(T... values) {
             return Stream.of(values)
@@ -74,6 +78,58 @@ public interface Utils {
             if (value != null) {
                 consumer.accept(value);
             }
+        }
+
+        public static <T, E extends Throwable> T cast(Class<T> type, Object value, Supplier<E> exceptionSupplier) throws E {
+            try {
+                return type.cast(value);
+            } catch (ClassCastException e) {
+                throw exceptionSupplier.get();
+            }
+        }
+    }
+
+    final class Lambda {
+        interface CheckedBiConsumer<T, U, E extends Throwable> {
+            void accept(T t, U u) throws E;
+        }
+
+        interface CheckedConsumer<T, E extends Throwable> {
+            void accept(T t) throws E;
+        }
+    }
+
+    // TODO: Make streaming version?
+    final class Collections {
+        public static <T> List<List<T>> chunk(List<T> list, int chunkSize) {
+            List<List<T>> chunks = new LinkedList<>();
+            if (chunkSize == 0) {
+                chunks.add(list);
+            } else {
+                final AtomicReference<List<T>> currentChunk = new AtomicReference<>(new LinkedList<>());
+                list.forEach((item) -> {
+                    List<T> chunk = currentChunk.get();
+                    if (chunk.size() < chunkSize) {
+                        chunk.add(item);
+                    } else {
+                        chunks.add(chunk);
+                        currentChunk.set(new LinkedList<>());
+                    }
+                });
+                if (!currentChunk.get().isEmpty()) {
+                    chunks.add(currentChunk.get());
+                }
+            }
+            return chunks;
+        }
+    }
+
+    final class Futures {
+        public static <T> CompletableFuture<List<T>> allOf(List<CompletableFuture<T>> futures) {
+            return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .thenApply((Void) -> futures.stream()
+                            .map(CompletableFuture::join)
+                            .collect(Collectors.toList()));
         }
     }
 }
