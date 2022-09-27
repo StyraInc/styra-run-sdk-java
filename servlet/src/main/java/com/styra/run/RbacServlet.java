@@ -9,8 +9,6 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 import static com.styra.run.Utils.Null.firstNonNull;
 
@@ -80,15 +78,19 @@ public final class RbacServlet extends StyraRunServlet {
         @Override
         protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
             RbacManager rbac = getRbacManager();
-            try {
-                List<String> roles = rbac.getRoles(new AuthorizationInput("alice", "acmecorp")).get();
-
-                response.setStatus(HttpServletResponse.SC_OK);
-                response.setContentType("application/json");
-                response.getOutputStream().write(toJson(roles).getBytes(StandardCharsets.UTF_8));
-            } catch (InterruptedException | ExecutionException e) {
-                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            }
+            handleAsync(request, response, (body, out, async) ->
+                    rbac.getRoles(new AuthorizationInput("alice", "acmecorp"))
+                            .thenAccept((roles) -> {
+                                try {
+                                    response.setStatus(HttpServletResponse.SC_OK);
+                                    response.setContentType("application/json");
+                                    out.write(toJson(roles).getBytes(StandardCharsets.UTF_8));
+                                } catch (IOException | ServletException e) {
+                                    handleError("Failed to marshal JSON response", e, async, response);
+                                } finally {
+                                    async.complete();
+                                }
+                            }));
         }
     }
 

@@ -97,10 +97,12 @@ public interface Utils {
     }
 
     final class Lambda {
+        @FunctionalInterface
         interface CheckedBiConsumer<T, U, E extends Throwable> {
             void accept(T t, U u) throws E;
         }
 
+        @FunctionalInterface
         interface CheckedConsumer<T, E extends Throwable> {
             void accept(T t) throws E;
         }
