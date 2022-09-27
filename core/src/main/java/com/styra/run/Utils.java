@@ -87,6 +87,13 @@ public interface Utils {
                 throw exceptionSupplier.get();
             }
         }
+
+        public static <T> T safeCast(Class<T> type, Object value) {
+            if (type.isAssignableFrom(value.getClass())) {
+                return type.cast(value);
+            }
+            return null;
+        }
     }
 
     final class Lambda {

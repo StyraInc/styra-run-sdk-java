@@ -132,7 +132,7 @@ public class StyraRunTests {
         StyraRun.builder(DEFAULT_BASE_URL, DEFAULT_TOKEN)
                 .apiClient(mockedApiClient)
                 .build()
-                .query(DEFAULT_PATH, input)
+                .query(DEFAULT_PATH, new Input<>(input))
                 .get();
     }
 

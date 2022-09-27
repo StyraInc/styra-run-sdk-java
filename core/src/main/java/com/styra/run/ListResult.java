@@ -39,6 +39,13 @@ public class ListResult extends Result<List<Result<?>>> {
                                 Map.Entry::getValue)));
     }
 
+    public ListResult withoutAttributes() {
+
+        return new ListResult(get().stream()
+                .map(Result::withoutAttributes)
+                .collect(Collectors.toList()));
+    }
+
     public int size() {
         return get().size();
     }

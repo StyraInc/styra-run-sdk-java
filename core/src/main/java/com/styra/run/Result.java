@@ -1,9 +1,14 @@
 package com.styra.run;
 
+import com.styra.run.Utils.Null;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class Result<T> {
+import static com.styra.run.Utils.Null.safeCast;
+import static java.util.Collections.singletonMap;
+
+public class Result<T> implements SerializableAsMap {
     public static final Result<?> EMPTY_RESULT = new Result<>(null, Collections.emptyMap());
 
     private final T result;
@@ -15,7 +20,7 @@ public class Result<T> {
 
     public Result(T result, Map<String, ?> attributes) {
         this.result = result;
-        this.attributes = Collections.unmodifiableMap(attributes);
+        this.attributes = Utils.Null.map(attributes, Collections::unmodifiableMap, Collections.emptyMap());
     }
 
     public static Result<?> empty() {
@@ -56,11 +61,21 @@ public class Result<T> {
         return (List<?>) result;
     }
 
+    public <U> List<U> asListOf(Class<U> type) {
+        return asList().stream()
+                .map(type::cast)
+                .collect(Collectors.toList());
+    }
+
     public List<Result<?>> asResultList() {
         return asList().stream()
                 .map(Map.class::cast)
                 .map(Result::fromResponseMap)
                 .collect(Collectors.toList());
+    }
+
+    public Result<T> withoutAttributes() {
+        return new Result<>(result, Collections.emptyMap());
     }
 
     public Map<String, ?> getAttributes() {
@@ -89,5 +104,25 @@ public class Result<T> {
         return "Result{" + result +
                 ", attributes=" + attributes +
                 '}';
+    }
+
+    public Map<String, ?> toMap() {
+        if (result == null) {
+            return Collections.emptyMap();
+        }
+
+        Object transformedResult;
+        if (result instanceof SerializableAsMap) {
+            transformedResult = ((SerializableAsMap) result).toMap();
+        } else if (result instanceof List) {
+            transformedResult = ((List<?>) result).stream()
+                    .map((r) -> Null.map(safeCast(SerializableAsMap.class, r),
+                            SerializableAsMap::toMap, r))
+                    .collect(Collectors.toList());
+        } else {
+            transformedResult = result;
+        }
+
+        return singletonMap("result", transformedResult);
     }
 }

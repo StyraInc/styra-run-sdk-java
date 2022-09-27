@@ -3,102 +3,81 @@ package com.styra.run;
 import com.styra.run.StyraRun.BatchQuery;
 import com.styra.run.Utils.Lambda.CheckedBiConsumer;
 import jakarta.servlet.*;
-import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.function.Consumer;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.styra.run.Utils.Null.cast;
-import static java.util.Collections.singletonMap;
 
-public class ProxyServlet extends HttpServlet {
-    public final String STYRA_RUN_ATTR = "styra-run";
-    public final String INPUT_SUPPLIER_ATTR = "input-supplier";
+public final class ProxyServlet extends StyraRunServlet {
+    public static final String INPUT_TRANSFORMER_ATTR = "input-transformer";
+    private final InputTransformer DEFAULT_INPUT_TRANSFORMER = DefaultSessionInputStrategies.COOKIE;
 
-    private final InputSupplier DEFAULT_INPUT_SUPPLIER = (path, input, request) -> input;
-
-    private final StyraRun styraRun;
-    private final InputSupplier inputSupplier;
+    private final InputTransformer inputTransformer;
 
     public ProxyServlet() {
-        this.inputSupplier = null;
-        this.styraRun = null;
+        super();
+        this.inputTransformer = null;
     }
 
-    public ProxyServlet(StyraRun styraRun, InputSupplier inputSupplier) {
-        this.styraRun = styraRun;
-        this.inputSupplier = inputSupplier;
+    public ProxyServlet(StyraRun styraRun) {
+        super(styraRun);
+        this.inputTransformer = DEFAULT_INPUT_TRANSFORMER;
     }
 
-    private StyraRun getStyraRun() throws ServletException {
-        if (styraRun != null) {
-            return styraRun;
+    public ProxyServlet(StyraRun styraRun, InputTransformer inputTransformer) {
+        super(styraRun);
+        this.inputTransformer = inputTransformer;
+    }
+
+    private InputTransformer getInputSupplier() throws ServletException {
+        if (inputTransformer != null) {
+            return inputTransformer;
         }
-        return Optional.ofNullable(cast(StyraRun.class, getServletConfig().getServletContext().getAttribute(STYRA_RUN_ATTR),
-                        () -> new ServletException(String.format("'%s' attribute on servlet context was not StyraRun type", STYRA_RUN_ATTR))))
-                .orElseThrow(() -> new ServletException(String.format("No '%s' attribute on servlet context", STYRA_RUN_ATTR)));
-    }
-
-    private InputSupplier getInputSupplier() throws ServletException {
-        if (inputSupplier != null) {
-            return inputSupplier;
-        }
-        return Optional.ofNullable(cast(InputSupplier.class, getServletConfig().getServletContext().getAttribute("input-supplier"),
-                        () -> new ServletException(String.format("'%s' attribute on servlet context was not InputSupplier type", INPUT_SUPPLIER_ATTR))))
-                .orElse(DEFAULT_INPUT_SUPPLIER);
+        return Optional.ofNullable(cast(InputTransformer.class, getServletConfig().getServletContext().getAttribute("input-supplier"),
+                        () -> new ServletException(String.format("'%s' attribute on servlet context was not InputSupplier type", INPUT_TRANSFORMER_ATTR))))
+                .orElse(DEFAULT_INPUT_TRANSFORMER);
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         StyraRun styraRun = getStyraRun();
-        InputSupplier inputSupplier = getInputSupplier();
+        InputTransformer inputTransformer = getInputSupplier();
         AsyncContext async = request.startAsync();
 
         ServletInputStream in = request.getInputStream();
         in.setReadListener(new AsyncReader(async, response, in,
-                (body, write) -> {
-                    BatchQuery query = styraRun.getJson().to(BatchQuery.class, body);
+                (body, out) -> {
+                    BatchQuery query = BatchQuery.fromMap(styraRun.getJson().toMap(body));
                     List<StyraRun.Query> items = query.getItems().stream()
                             .map((q) -> new StyraRun.Query(q.getPath(),
-                                    inputSupplier.get(null, q.getInput(), request)))
+                                    inputTransformer.transform(q.getInput(), q.getPath(), request)))
                             .collect(Collectors.toList());
-                    Object globalInput = inputSupplier.get(null, query.getInput(), request);
+                    Input<?> globalInput = inputTransformer.transform(query.getInput(), null, request);
 
                     styraRun.batchQuery(items, globalInput)
                             .thenAccept((result) -> {
-                                List<?> output = result.get().stream()
-                                        .map(ProxyServlet::resultToMap)
-                                        .collect(Collectors.toList());
                                 try {
-                                    write.accept(styraRun.getJson().from(singletonMap("result", output))
+                                    out.write(styraRun.getJson().from(result.withoutAttributes().toMap())
                                             .getBytes(StandardCharsets.UTF_8));
+                                    response.setStatus(HttpServletResponse.SC_OK);
                                 } catch (IOException e) {
                                     handleError("Failed to marshal JSON response", e, async, response);
+                                } finally {
+                                    async.complete();
                                 }
-                                response.setStatus(200);
-                                async.complete();
                             }).join();
                 }));
     }
 
-    private static Map<?, ?> resultToMap(Result<?> result) {
-        Object value = result.get();
-        if (value == null) {
-            return Collections.emptyMap();
-        }
-        return singletonMap("result", value);
-    }
-
-    private interface OnReady extends CheckedBiConsumer<String, Write, IOException> {
-    }
-
-    private interface Write extends Consumer<byte[]> {
+    private interface OnReady extends CheckedBiConsumer<String, ServletOutputStream, IOException> {
     }
 
     private class AsyncReader implements ReadListener {
@@ -162,14 +141,12 @@ public class ProxyServlet extends HttpServlet {
         }
 
         @Override
-        public void onWritePossible() throws IOException {
-            onReady.accept(input, (bytes) -> {
-                try {
-                    out.write(bytes);
-                } catch (IOException e) {
-                    onError(e);
-                }
-            });
+        public void onWritePossible() {
+            try {
+                onReady.accept(input, out);
+            } catch (IOException e) {
+                onError(e);
+            }
         }
 
         @Override

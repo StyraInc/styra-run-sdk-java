@@ -44,16 +44,16 @@ public class StyraRun {
         return json;
     }
 
-    public Future<Result<?>> query(String path) {
+    public CompletableFuture<Result<?>> query(String path) {
         return query(path, null);
     }
 
-    public CompletableFuture<Result<?>> query(String path, Object input) {
+    public CompletableFuture<Result<?>> query(String path, Input<?> input) {
         Objects.requireNonNull(path, "path must not be null");
 
         HeadersBuilder headers = makeHeadersBuilder().json();
         Map<String, ?> body = Null.map(input,
-                (v) -> Collections.singletonMap("input", input),
+                Input::toMap,
                 Collections.emptyMap());
 
         return makeUri("data", path)
@@ -71,7 +71,7 @@ public class StyraRun {
         return new BatchQueryBuilder();
     }
 
-    public CompletableFuture<ListResult> batchQuery(List<Query> items, Object input) {
+    public CompletableFuture<ListResult> batchQuery(List<Query> items, Input<?> input) {
         Objects.requireNonNull(items, "items must not be null");
 
         List<BatchQuery> chunks = new BatchQuery(items, input)
@@ -101,7 +101,7 @@ public class StyraRun {
 
     private CompletableFuture<ListResult> batchQuery(BatchQuery query) {
         HeadersBuilder headers = makeHeadersBuilder().json();
-        return toJson(query)
+        return toJson(query.toMap())
                 .thenCompose((json) -> apiClient.post(batchUri, json, headers.toMap()))
                 .thenApply(this::handleResponse)
                 .thenApply(ListResult::fromResponseMap);
@@ -111,7 +111,7 @@ public class StyraRun {
         return check(path, null, DEFAULT_CHECK_PREDICATE);
     }
 
-    public CompletableFuture<Boolean> check(String path, Object input) {
+    public CompletableFuture<Boolean> check(String path, Input<?> input) {
         return check(path, input, DEFAULT_CHECK_PREDICATE);
     }
 
@@ -119,8 +119,13 @@ public class StyraRun {
         return check(path, null, predicate);
     }
 
-    public CompletableFuture<Boolean> check(String path, Object input, Predicate<Result<?>> predicate) {
-        return query(path, input).thenApply((predicate::test));
+    public CompletableFuture<Boolean> check(String path, Input<?> input, Predicate<Result<?>> predicate) {
+        return query(path, input)
+                .thenApply((predicate::test))
+                .thenApply((allowed) -> {
+                    logger.debug("Check: path='{}'; input={}; allowed={}", path, input, allowed);
+                    return allowed;
+                });
     }
 
     public CompletableFuture<Result<?>> getData(String path) {
@@ -193,33 +198,27 @@ public class StyraRun {
     }
 
     public static class Query {
-        private String path;
-        private Object input;
+        private final String path;
+        private final Input<?> input;
 
-        Query() {
-            this.path = null;
-            this.input = null;
-        }
-
-        public Query(String path, Object input) {
+        public Query(String path, Input<?> input) {
+            Objects.requireNonNull(path, "path must not be null");
             this.path = path;
             this.input = input;
         }
 
-        public Object getInput() {
-            return input;
+        public static Query fromMap(Map<?, ?> map) {
+            String path = (String) map.get("path");
+            Input<?> input = Utils.Null.map(map.get("input"), Input::new);
+            return new Query(path, input);
         }
 
-        public void setInput(Object input) {
-            this.input = input;
+        public Input<?> getInput() {
+            return input;
         }
 
         public String getPath() {
             return path;
-        }
-
-        public void setPath(String path) {
-            this.path = path;
         }
 
         @Override
@@ -236,36 +235,42 @@ public class StyraRun {
             sb.append('}');
             return sb.toString();
         }
+
+        public Map<String, ?> toMap() {
+            Map<String, Object> map = new HashMap<>();
+            map.put("path", path);
+            if (input != null) {
+                map.putAll(input.toMap());
+            }
+            return map;
+        }
     }
 
     static class BatchQuery {
-        private List<Query> items;
-        private Object input;
+        private final List<Query> items;
+        private final Input<?> input;
 
-        BatchQuery() {
-            items = null;
-            input = null;
-        }
+        public BatchQuery(List<Query> items, Input<?> input) {
+            Objects.requireNonNull(items, "items must not be null");
 
-        public BatchQuery(List<Query> items, Object input) {
             this.items = items;
             this.input = input;
         }
 
-        public Object getInput() {
-            return input;
+        public static BatchQuery fromMap(Map<?, ?> map) {
+            List<Query> items = ((List<?>) map.get("items")).stream()
+                    .map((item) -> Query.fromMap((Map<?, ?>) item))
+                    .collect(Collectors.toList());
+            Input<?> input = Utils.Null.map(map.get("input"), Input::new);
+            return new BatchQuery(items, input);
         }
 
-        public void setInput(Object input) {
-            this.input = input;
+        public Input<?> getInput() {
+            return input;
         }
 
         public List<Query> getItems() {
             return items;
-        }
-
-        public void setItems(List<Query> items) {
-            this.items = items;
         }
 
         List<BatchQuery> chunk(int chunkSize) {
@@ -273,16 +278,27 @@ public class StyraRun {
                     .map((items) -> new BatchQuery(items, input))
                     .collect(Collectors.toList());
         }
+
+        public Map<String, ?> toMap() {
+            Map<String, Object> map = new HashMap<>();
+            map.put("items", items.stream()
+                    .map(Query::toMap)
+                    .collect(Collectors.toList()));
+            if (input != null) {
+                map.putAll(input.toMap());
+            }
+            return map;
+        }
     }
 
     public class BatchQueryBuilder {
         private final List<Query> items = new LinkedList<>();
-        private Object input;
+        private Input<?> input;
 
         private BatchQueryBuilder() {
         }
 
-        public BatchQueryBuilder input(Object input) {
+        public BatchQueryBuilder input(Input<?> input) {
             this.input = input;
             return this;
         }
@@ -291,7 +307,7 @@ public class StyraRun {
             return addQuery(path, input);
         }
 
-        public BatchQueryBuilder addQuery(String path, Object input) {
+        public BatchQueryBuilder addQuery(String path, Input<?> input) {
             Objects.requireNonNull(path, "path must not be null");
             items.add(new Query(path, input));
             return this;
