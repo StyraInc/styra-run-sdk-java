@@ -39,17 +39,8 @@ public final class ProxyServlet extends StyraRunServlet {
                     Input<?> globalInput = inputTransformer.transform(query.getInput(), null, request);
 
                     styraRun.batchQuery(items, globalInput)
-                            .thenAccept((result) -> {
-                                try {
-                                    out.write(json.from(result.withoutAttributes().toMap())
-                                            .getBytes(StandardCharsets.UTF_8));
-                                    response.setStatus(HttpServletResponse.SC_OK);
-                                } catch (IOException e) {
-                                    handleError("Failed to marshal JSON response", e, async, response);
-                                } finally {
-                                    async.complete();
-                                }
-                            });
+                            .thenAccept((result) ->
+                                    writeOkJsonResponse(result.withoutAttributes().toMap(), response, out, async));
                 });
     }
 }
