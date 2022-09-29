@@ -1,6 +1,5 @@
 package com.styra.run;
 
-import com.styra.run.ApiClient.ApiResponse;
 import com.styra.run.Utils.Null;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -149,7 +148,7 @@ public class StyraRun {
         return makeUri("data", path)
                 .thenCompose((url) -> apiClient.get(url, headers.toMap()))
                 .thenApply((response) -> {
-                    if (response.getStatusCode() == 404) {
+                    if (response.isNotFoundStatus()) {
                         return new Result<>(defaultSupplier.get());
                     } else {
                         return Result.fromResponseMap(handleResponse(response));
