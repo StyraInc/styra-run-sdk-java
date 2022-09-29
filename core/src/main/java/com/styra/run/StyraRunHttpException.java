@@ -1,7 +1,7 @@
 package com.styra.run;
 
 public class StyraRunHttpException extends StyraRunException {
-    // FIXME: Use ApiClient.ApiRespose instead?
+    // FIXME: Use ApiClient.ApiResponse instead?
     private final int statusCode;
     private final String body;
     private final ApiError apiError;

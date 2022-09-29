@@ -4,6 +4,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
@@ -79,7 +80,9 @@ public interface Utils {
                 consumer.accept(value);
             }
         }
+    }
 
+    final class Types {
         public static <T, E extends Throwable> T cast(Class<T> type, Object value, Supplier<E> exceptionSupplier) throws E {
             try {
                 return type.cast(value);
@@ -94,9 +97,27 @@ public interface Utils {
             }
             return null;
         }
+
+        public static <K, V> Map<K, V> castMap(Class<K> keyType, Class<V> valueType, Map<?, ?> map) {
+            return map.entrySet().stream()
+                    .collect(Collectors.toMap(
+                            (e) -> keyType.cast(e.getKey()),
+                            (e) -> valueType.cast(e.getValue())));
+        }
+
+        public static <V> Map<String, V> castMap(Class<V> valueType, Map<?, ?> map) {
+            return map.entrySet().stream()
+                    .collect(Collectors.toMap(
+                            (e) -> e.getKey().toString(),
+                            (e) -> valueType.cast(e.getValue())));
+        }
+
+        public static <T> List<T> castList(Class<T> type, List<?> list) {
+            return list.stream().map(type::cast).collect(Collectors.toList());
+        }
     }
 
-    final class Lambda {
+    final class Lambdas {
         @FunctionalInterface
         interface CheckedBiConsumer<T, U, E extends Throwable> {
             void accept(T t, U u) throws E;

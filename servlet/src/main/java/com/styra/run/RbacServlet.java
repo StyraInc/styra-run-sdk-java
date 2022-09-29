@@ -2,13 +2,18 @@ package com.styra.run;
 
 import com.styra.run.rbac.AuthorizationInput;
 import com.styra.run.rbac.RbacManager;
+import com.styra.run.rbac.Role;
+import com.styra.run.rbac.User;
+import jakarta.servlet.AsyncContext;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.styra.run.Utils.Null.firstNonNull;
 
@@ -68,6 +73,14 @@ public final class RbacServlet extends StyraRunServlet {
             return firstNonNull(request.getPathInfo(), "/")
                     .replaceFirst(pathPrefix, "");
         }
+
+        AuthorizationInput getAuthzInput(HttpServletRequest request) throws AuthorizationException {
+            try {
+                return AuthorizationInput.from(getInputTransformer().transform(Input.empty(), RbacManager.AUTHZ_PATH, request));
+            } catch (Throwable t) {
+                throw new AuthorizationException("", t);
+            }
+        }
     }
 
     private final class RbacRolesServlet extends RbacSubRoute {
@@ -79,17 +92,11 @@ public final class RbacServlet extends StyraRunServlet {
         protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
             RbacManager rbac = getRbacManager();
             handleAsync(request, response, (body, out, async) ->
-                    rbac.getRoles(new AuthorizationInput("alice", "acmecorp"))
-                            .thenAccept((roles) -> {
-                                try {
-                                    response.setStatus(HttpServletResponse.SC_OK);
-                                    response.setContentType("application/json");
-                                    out.write(toJson(roles).getBytes(StandardCharsets.UTF_8));
-                                } catch (IOException | ServletException e) {
-                                    handleError("Failed to marshal JSON response", e, async, response);
-                                } finally {
-                                    async.complete();
-                                }
+                    rbac.getRoles(getAuthzInput(request))
+                            .thenAccept((roles) -> writeResult(roles, response, out, async))
+                            .exceptionally((e) -> {
+                                handleError("Failed to GET roles", e, async, response);
+                                return null;
                             }));
         }
     }
@@ -101,8 +108,15 @@ public final class RbacServlet extends StyraRunServlet {
 
         @Override
         protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-            response.setStatus(HttpServletResponse.SC_OK);
-            response.getOutputStream().write("USER BINDINGS".getBytes(StandardCharsets.UTF_8));
+            RbacManager rbac = getRbacManager();
+            handleAsync(request, response, (body, out, async) ->
+                    rbac.listUserBindings(getAuthzInput(request))
+                            .thenAccept((bindings) -> writeResult(bindings, response, out, async))
+                            .exceptionally((e) -> {
+                                handleError("Failed to GET user bindings for", e, async, response);
+                                return null;
+                            }));
+
         }
     }
 
@@ -118,17 +132,77 @@ public final class RbacServlet extends StyraRunServlet {
 
         @Override
         protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+            try {
+                String userId = getUserId(request);
+                RbacManager rbac = getRbacManager();
+                handleAsync(request, response, (body, out, async) ->
+                        rbac.getUserBinding(new User(userId), getAuthzInput(request))
+                                .thenAccept((binding) -> writeResult(binding.getRoles().stream()
+                                        .map(Role::getName)
+                                        .collect(Collectors.toList()), response, out, async))
+                                .exceptionally((e) -> {
+                                    handleError(String.format("Failed to GET user binding for '%s'", userId), e, async, response);
+                                    return null;
+                                }));
+            } catch (NotFoundException e) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            }
+        }
+
+        @Override
+        protected void doDelete(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+            try {
+                String userId = getUserId(request);
+                RbacManager rbac = getRbacManager();
+                handleAsync(request, response, (body, out, async) ->
+                        rbac.deleteUserBinding(new User(userId), getAuthzInput(request))
+                                .thenAccept((Void) -> writeResult(null, response, out, async))
+                                .exceptionally((e) -> {
+                                    handleError(String.format("Failed to PUT user binding for '%s'", userId), e, async, response);
+                                    return null;
+                                }));
+            } catch (NotFoundException e) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            }
+        }
+
+        @Override
+        protected void doPut(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+            try {
+                String userId = getUserId(request);
+                RbacManager rbac = getRbacManager();
+                handleAsync(request, response, (body, out, async) -> {
+                    List<Role> roles = getStyraRun().getJson().toList(String.class, body)
+                            .stream()
+                            .map(Role::new)
+                            .collect(Collectors.toList());
+                    rbac.setUserBinding(new User(userId), roles, getAuthzInput(request))
+                            .thenAccept((Void) -> writeResult(null, response, out, async))
+                            .exceptionally((e) -> {
+                                handleError(String.format("Failed to DELETE user binding for '%s'", userId), e, async, response);
+                                return null;
+                            });
+                });
+            } catch (NotFoundException e) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            }
+        }
+
+        private String getUserId(HttpServletRequest request) throws NotFoundException {
             String userId = getPath(request);
 
             if (userId.indexOf('/') != -1 || userId.isEmpty()) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                return;
+                throw new NotFoundException();
             }
 
-            StyraRun styraRun = getStyraRun();
-
-            response.setStatus(HttpServletResponse.SC_OK);
-            response.getOutputStream().write(userId.getBytes(StandardCharsets.UTF_8));
+            return userId;
         }
+    }
+
+    private void writeResult(Object value, HttpServletResponse response, ServletOutputStream out, AsyncContext context) {
+        writeOkJsonResponse(new Result<>(SerializableAsMap.serialize(value)).toMap(), response, out, context);
+    }
+
+    private static final class NotFoundException extends Exception {
     }
 }

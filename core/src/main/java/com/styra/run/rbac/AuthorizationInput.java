@@ -1,14 +1,19 @@
 package com.styra.run.rbac;
 
+import com.styra.run.Input;
 import com.styra.run.MapInput;
+import com.styra.run.Utils;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import static com.styra.run.Utils.Null.firstNonNull;
+
 public class AuthorizationInput extends MapInput<String, Object> {
-    private static final String KEY_SUBJECT = "subject";
-    private static final String KEY_TENANT = "tenant";
+    private static final String SUBJECT_KEY = "subject";
+    private static final String TENANT_KEY = "tenant";
 
     public AuthorizationInput(String subject, String tenant) {
         super(createMap(subject, tenant));
@@ -20,19 +25,26 @@ public class AuthorizationInput extends MapInput<String, Object> {
     private AuthorizationInput(Map<String, Object> map) {
         super(map);
 
-        if (!map.containsKey(KEY_SUBJECT)) {
-            throw new IllegalArgumentException(String.format("map doesnt contain %s entry", KEY_SUBJECT));
+        if (!map.containsKey(SUBJECT_KEY)) {
+            throw new IllegalArgumentException(String.format("map doesnt contain %s entry", SUBJECT_KEY));
         }
 
-        if (!map.containsKey(KEY_TENANT)) {
-            throw new IllegalArgumentException(String.format("map doesnt contain %s entry", KEY_TENANT));
+        if (!map.containsKey(TENANT_KEY)) {
+            throw new IllegalArgumentException(String.format("map doesnt contain %s entry", TENANT_KEY));
         }
+    }
+
+    public static AuthorizationInput from(Input<?> other) {
+        Map<?, ?> value = Utils.Types.cast(Map.class, firstNonNull(other::getValue, Collections::emptyMap),
+                () -> new IllegalArgumentException("other input value is not a Map"));
+
+        return new AuthorizationInput(Utils.Types.castMap(Object.class, value));
     }
 
     private static Map<String, Object> createMap(String subject, String tenant) {
         Map<String, Object> map = new HashMap<>(2);
-        map.put(KEY_SUBJECT, subject);
-        map.put(KEY_TENANT, tenant);
+        map.put(SUBJECT_KEY, subject);
+        map.put(TENANT_KEY, tenant);
         return map;
     }
 
@@ -40,5 +52,9 @@ public class AuthorizationInput extends MapInput<String, Object> {
         Map<String, Object> map = new HashMap<>(getValue());
         map.put(key, value);
         return new AuthorizationInput(map);
+    }
+
+    public String getTenant() {
+        return (String) getValue().get(TENANT_KEY);
     }
 }

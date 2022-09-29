@@ -1,15 +1,22 @@
 package com.styra.run.rbac;
 
+import com.styra.run.AuthorizationException;
 import com.styra.run.StyraRun;
 import com.styra.run.StyraRunException;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.stream.Collectors;
+
+import static com.styra.run.Utils.Types.castList;
 
 public class RbacManager {
-    private static final String AUTHZ_PATH = "rbac/manage/allow";
+    public static final String AUTHZ_PATH = "rbac/manage/allow";
     private static final String ROLES_PATH = "rbac/roles";
+    private static final String USER_BINDINGS_PATH = "rbac/user_bindings";
+    private static final String USER_BINDINGS_FORMAT = USER_BINDINGS_PATH + "/%s";
+    private static final String USER_BINDING_FORMAT = USER_BINDINGS_FORMAT + "/%s";
 
     private final StyraRun styraRun;
 
@@ -19,28 +26,73 @@ public class RbacManager {
 
     public CompletableFuture<List<String>> getRoles(AuthorizationInput authzInput) {
         return styraRun.check(AUTHZ_PATH, authzInput)
-                .thenCompose((allowed) -> {
-                    if (!allowed) {
-                        throw new CompletionException(new StyraRunException("Not authorized to manage RBAC"));
-                    }
-                    return styraRun.query(ROLES_PATH)
-                            .thenApply((result) -> result.asListOf(String.class));
-                });
+                .thenApply(this::assertAllowed)
+                .thenCompose((Void) -> styraRun.query(ROLES_PATH))
+                .thenApply((result) -> result.asListOf(String.class));
     }
 
     public CompletableFuture<List<UserBinding>> listUserBindings(AuthorizationInput authzInput) {
-        return null;
+        return styraRun.check(AUTHZ_PATH, authzInput)
+                .thenApply(this::assertAllowed)
+                .thenCompose((Void) -> styraRun.getData(String.format(USER_BINDINGS_FORMAT, authzInput.getTenant())))
+                .thenApply((result) -> {
+                    try {
+                        return result.asMap().entrySet().stream()
+                                .map((entry) -> {
+                                    User user = new User(entry.getKey().toString());
+                                    List<Role> roles = castList(String.class, (List<?>) entry.getValue())
+                                            .stream()
+                                            .map(Role::new)
+                                            .collect(Collectors.toList());
+                                    return new UserBinding(user, roles);
+                                })
+                                .collect(Collectors.toList());
+                    } catch (Exception e) {
+                        throw new CompletionException(
+                                new StyraRunException("Failed to parse user bindings", e));
+                    }
+                });
     }
 
+    // TODO: Add getUserBindings(List<User>, AuthorizationInput) function
+
     public CompletableFuture<UserBinding> getUserBinding(User user, AuthorizationInput authzInput) {
-        return null;
+        return styraRun.check(AUTHZ_PATH, authzInput)
+                .thenApply(this::assertAllowed)
+                .thenCompose((Void) -> styraRun.getData(String.format(USER_BINDING_FORMAT, authzInput.getTenant(), user.getId())))
+                .thenApply((result) -> {
+                    try {
+                        List<Role> roles = result.asListOf(String.class).stream()
+                                .map(Role::new)
+                                .collect(Collectors.toList());
+                        return new UserBinding(user, roles);
+                    } catch (Exception e) {
+                        throw new CompletionException(
+                                new StyraRunException(String.format("Failed to parse user binding for '%s'", user.getId()), e));
+                    }
+                });
     }
 
     public CompletableFuture<Void> setUserBinding(User user, List<Role> roles, AuthorizationInput authzInput) {
-        return null;
+        List<String> data = roles.stream().map(Role::getName).collect(Collectors.toList());
+        return styraRun.check(AUTHZ_PATH, authzInput)
+                .thenApply(this::assertAllowed)
+                .thenCompose((Void) -> styraRun.putData(String.format(USER_BINDING_FORMAT, authzInput.getTenant(), user.getId()), data))
+                .thenApply((Void) -> null);
     }
 
     public CompletableFuture<Void> deleteUserBinding(User user, AuthorizationInput authzInput) {
+        return styraRun.check(AUTHZ_PATH, authzInput)
+                .thenApply(this::assertAllowed)
+                .thenCompose((Void) -> styraRun.deleteData(String.format(USER_BINDING_FORMAT, authzInput.getTenant(), user.getId())))
+                .thenApply((Void) -> null);
+    }
+
+    private Void assertAllowed(boolean allowed) {
+        if (!allowed) {
+            throw new CompletionException(new AuthorizationException("Not authorized to manage RBAC"));
+        }
+
         return null;
     }
 }

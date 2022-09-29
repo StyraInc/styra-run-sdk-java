@@ -4,10 +4,15 @@ import java.util.Collections;
 import java.util.Map;
 
 public class Input<T> {
+    private static final Input<Void> EMPTY = new Input<>(null);
     private final T value;
 
     public Input(T value) {
         this.value = value;
+    }
+
+    public static Input<?> empty() {
+        return EMPTY;
     }
 
     public T getValue() {

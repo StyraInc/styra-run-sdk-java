@@ -1,25 +1,27 @@
 package com.styra.run;
 
-import com.styra.run.Utils.Null;
-
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static com.styra.run.Utils.Null.safeCast;
+import static com.styra.run.Utils.Null.firstNonNull;
 import static java.util.Collections.singletonMap;
 
 public class Result<T> implements SerializableAsMap {
     public static final Result<?> EMPTY_RESULT = new Result<>(null, Collections.emptyMap());
 
-    private final T result;
+    private final T value;
     private final Map<String, ?> attributes;
 
-    public Result(T result) {
-        this(result, Collections.emptyMap());
+    public Result(T value) {
+        this(value, Collections.emptyMap());
     }
 
-    public Result(T result, Map<String, ?> attributes) {
-        this.result = result;
+    public Result(T value, Map<String, ?> attributes) {
+        this.value = value;
         this.attributes = Utils.Null.map(attributes, Collections::unmodifiableMap, Collections.emptyMap());
     }
 
@@ -42,29 +44,33 @@ public class Result<T> implements SerializableAsMap {
     }
 
     public T get() {
-        return result;
+        return value;
     }
 
     public Optional<T> getOptional() {
-        return Optional.ofNullable(result);
+        return Optional.ofNullable(value);
     }
 
     public boolean asBoolean() {
-        return (Boolean) result;
+        return (Boolean) value;
     }
 
     public boolean asSafeBoolean(boolean def) {
-        return result instanceof Boolean ? (Boolean) result : def;
+        return value instanceof Boolean ? (Boolean) value : def;
     }
 
     public List<?> asList() {
-        return (List<?>) result;
+        return firstNonNull((List<?>) value, Collections.emptyList());
     }
 
     public <U> List<U> asListOf(Class<U> type) {
         return asList().stream()
                 .map(type::cast)
                 .collect(Collectors.toList());
+    }
+
+    public Map<?, ?> asMap() {
+        return firstNonNull((Map<?, ?>) value, Collections.emptyMap());
     }
 
     public List<Result<?>> asResultList() {
@@ -75,7 +81,7 @@ public class Result<T> implements SerializableAsMap {
     }
 
     public Result<T> withoutAttributes() {
-        return new Result<>(result, Collections.emptyMap());
+        return new Result<>(value, Collections.emptyMap());
     }
 
     public Map<String, ?> getAttributes() {
@@ -91,38 +97,26 @@ public class Result<T> implements SerializableAsMap {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Result<?> result1 = (Result<?>) o;
-        return Objects.equals(result, result1.result) && Objects.equals(attributes, result1.attributes);
+        return Objects.equals(value, result1.value) && Objects.equals(attributes, result1.attributes);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(result, attributes);
+        return Objects.hash(value, attributes);
     }
 
     @Override
     public String toString() {
-        return "Result{" + result +
+        return "Result{" + value +
                 ", attributes=" + attributes +
                 '}';
     }
 
     public Map<String, ?> toMap() {
-        if (result == null) {
+        if (value == null) {
             return Collections.emptyMap();
         }
 
-        Object transformedResult;
-        if (result instanceof SerializableAsMap) {
-            transformedResult = ((SerializableAsMap) result).toMap();
-        } else if (result instanceof List) {
-            transformedResult = ((List<?>) result).stream()
-                    .map((r) -> Null.map(safeCast(SerializableAsMap.class, r),
-                            SerializableAsMap::toMap, r))
-                    .collect(Collectors.toList());
-        } else {
-            transformedResult = result;
-        }
-
-        return singletonMap("result", transformedResult);
+        return singletonMap("result", SerializableAsMap.serialize(value));
     }
 }

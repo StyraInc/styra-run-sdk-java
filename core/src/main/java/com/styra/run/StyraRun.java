@@ -1,5 +1,6 @@
 package com.styra.run;
 
+import com.styra.run.ApiClient.ApiResponse;
 import com.styra.run.Utils.Null;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -7,11 +8,16 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.Future;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class StyraRun {
@@ -129,13 +135,26 @@ public class StyraRun {
     }
 
     public CompletableFuture<Result<?>> getData(String path) {
+        return getData(path, () -> null);
+    }
+
+    public CompletableFuture<Result<?>> getData(String path, Object def) {
+        return getData(path, () -> def);
+    }
+
+    public CompletableFuture<Result<?>> getData(String path, Supplier<?> defaultSupplier) {
         Objects.requireNonNull(path, "path must not be null");
 
         HeadersBuilder headers = makeHeadersBuilder();
         return makeUri("data", path)
                 .thenCompose((url) -> apiClient.get(url, headers.toMap()))
-                .thenApply(this::handleResponse)
-                .thenApply(Result::fromResponseMap);
+                .thenApply((response) -> {
+                    if (response.getStatusCode() == 404) {
+                        return new Result<>(defaultSupplier.get());
+                    } else {
+                        return Result.fromResponseMap(handleResponse(response));
+                    }
+                });
     }
 
     public CompletableFuture<Result<Void>> putData(String path, Object data) {
@@ -160,12 +179,12 @@ public class StyraRun {
                 .thenApply(Result::empty);
     }
 
-    private Map<String, ?> handleResponse(ApiClient.ApiResponse response) {
+    private Map<String, ?> handleResponse(ApiResponse response) {
         return json.toOptionalMap(handleRawResponse(response))
                 .orElse(Collections.emptyMap());
     }
 
-    private String handleRawResponse(ApiClient.ApiResponse response) {
+    private String handleRawResponse(ApiResponse response) {
         if (!response.isSuccessful()) {
             throw new CompletionException(new StyraRunHttpException(
                     response.getStatusCode(), response.getBody(),
