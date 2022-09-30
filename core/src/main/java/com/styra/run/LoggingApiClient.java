@@ -48,6 +48,14 @@ public class LoggingApiClient implements ApiClient {
                 .thenApply((response -> logResponse(response, uuid)));
     }
 
+    @Override
+    public CompletableFuture<ApiResponse> request(Method method, URI uri, Map<String, String> headers, String body) {
+        UUID uuid = UUID.randomUUID();
+        logger.trace("API {} '{}'; uuid:{}; headers={}; body='{}'", method, uri, uuid, headers, body);
+        return delegate.request(method, uri, headers, body)
+                .thenApply((response -> logResponse(response, uuid)));
+    }
+
     private static ApiResponse logResponse(ApiResponse response, UUID uuid) {
         logger.trace("API response: uuid={}; response={}", uuid, response);
         return response;

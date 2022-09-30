@@ -28,6 +28,11 @@ public class NoopApiClient implements ApiClient, ApiClientProvider {
     }
 
     @Override
+    public CompletableFuture<ApiResponse> request(Method method, URI uri, Map<String, String> headers, String body) {
+        return null;
+    }
+
+    @Override
     public ApiClient create() {
         return new NoopApiClient();
     }

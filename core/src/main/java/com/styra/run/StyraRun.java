@@ -1,5 +1,6 @@
 package com.styra.run;
 
+import com.styra.run.ApiClient.RequestBuilder;
 import com.styra.run.Utils.Null;
 import com.styra.run.discovery.ApiGatewaySelector;
 import com.styra.run.discovery.Gateway;
@@ -21,10 +22,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import static com.styra.run.ApiClient.Method.DELETE;
+import static com.styra.run.ApiClient.Method.GET;
+import static com.styra.run.ApiClient.Method.POST;
+import static com.styra.run.ApiClient.Method.PUT;
+import static com.styra.run.Utils.Futures.async;
 
 public class StyraRun {
     private static final Logger logger = LoggerFactory.getLogger(StyraRun.class);
@@ -59,20 +65,29 @@ public class StyraRun {
     public CompletableFuture<Result<?>> query(String path, Input<?> input) {
         Objects.requireNonNull(path, "path must not be null");
 
-        HeadersBuilder headers = makeHeadersBuilder().json();
-        Map<String, ?> body = Null.map(input,
-                Input::toMap,
-                Collections.emptyMap());
-
-        return gatewaySelector.retry((gateway) -> makeUri(gateway, "data", path)
-                        .thenCombine(toJson(body), ApiRequest::new)
-                        .thenCompose((request) -> apiClient.post(request.uri, request.body, headers.toMap())))
+        return CompletableFuture.completedFuture(apiClient.requestBuilder(POST)
+                        .headers(getCommonHeaders())
+                        .jsonContentType())
+                .thenCombine(serializeBody(input), RequestBuilder::body)
+                .thenCompose((request) -> gatewaySelector.retry(request, "data", path))
                 .thenApply(this::handleResponse)
                 .thenApply(Result::fromResponseMap)
                 .thenApply((result) -> {
                     logger.debug("Query: path='{}'; input={}; result={}", path, input, result);
                     return result;
                 });
+    }
+
+    private CompletableFuture<String> serializeBody(SerializableAsMap body) {
+        return async(() -> {
+            try {
+                return getJson().from(Null.map(body,
+                        SerializableAsMap::toMap,
+                        Collections.emptyMap()));
+            } catch (IOException e) {
+                throw new StyraRunException("Input could not be serialized into json", e);
+            }
+        });
     }
 
     public BatchQueryBuilder buildBatchQuery() {
@@ -108,10 +123,11 @@ public class StyraRun {
     }
 
     private CompletableFuture<ListResult> batchQuery(BatchQuery query) {
-        HeadersBuilder headers = makeHeadersBuilder().json();
-        return gatewaySelector.retry((gateway) -> makeUri(gateway, "data_batch")
-                        .thenCombine(toJson(query.toMap()), ApiRequest::new)
-                        .thenCompose((request) -> apiClient.post(request.uri, request.body, headers.toMap())))
+        return CompletableFuture.completedFuture(apiClient.requestBuilder(POST)
+                        .headers(getCommonHeaders())
+                        .jsonContentType())
+                .thenCombine(serializeBody(query), RequestBuilder::body)
+                .thenCompose(request -> gatewaySelector.retry(request, "data_batch"))
                 .thenApply(this::handleResponse)
                 .thenApply(ListResult::fromResponseMap);
     }
@@ -148,15 +164,19 @@ public class StyraRun {
     public CompletableFuture<Result<?>> getData(String path, Supplier<?> defaultSupplier) {
         Objects.requireNonNull(path, "path must not be null");
 
-        HeadersBuilder headers = makeHeadersBuilder();
-        return gatewaySelector.retry((gateway -> makeUri(gateway, "data", path)
-                        .thenCompose((url) -> apiClient.get(url, headers.toMap()))))
+        return CompletableFuture.completedFuture(apiClient.requestBuilder(GET)
+                        .headers(getCommonHeaders()))
+                .thenCompose(request -> gatewaySelector.retry(request, "data", path))
                 .thenApply((response) -> {
                     if (response.isNotFoundStatus()) {
                         return new Result<>(defaultSupplier.get());
                     } else {
                         return Result.fromResponseMap(handleResponse(response));
                     }
+                })
+                .thenApply((result) -> {
+                    logger.debug("GET data: path='{}'; result={}", path, result);
+                    return result;
                 });
     }
 
@@ -164,22 +184,31 @@ public class StyraRun {
         Objects.requireNonNull(path, "path must not be null");
         Objects.requireNonNull(data, "data must not be null");
 
-        HeadersBuilder headers = makeHeadersBuilder().json();
-        return gatewaySelector.retry((gateway) -> makeUri(gateway, "data", path)
-                        .thenCombine(toJson(data), ApiRequest::new)
-                        .thenCompose((request) -> apiClient.put(request.uri, request.body, headers.toMap())))
+        return CompletableFuture.completedFuture(apiClient.requestBuilder(PUT)
+                        .headers(getCommonHeaders())
+                        .jsonContentType())
+                .thenCombine(toJson(data), RequestBuilder::body)
+                .thenCompose(request -> gatewaySelector.retry(request, "data", path))
                 .thenApply(this::handleResponse)
-                .thenApply(Result::empty);
+                .thenApply(Result::empty)
+                .thenApply((result) -> {
+                    logger.debug("PUT data: path='{}'; data='{}'; result={}", path, data, result);
+                    return result;
+                });
     }
 
     public CompletableFuture<Result<Void>> deleteData(String path) {
         Objects.requireNonNull(path, "path must not be null");
 
-        HeadersBuilder headers = makeHeadersBuilder().json();
-        return gatewaySelector.retry((gateway) -> makeUri(gateway, "data", path)
-                        .thenCompose((url) -> apiClient.delete(url, headers.toMap())))
+        return CompletableFuture.completedFuture(apiClient.requestBuilder(DELETE)
+                        .headers(getCommonHeaders()))
+                .thenCompose(request -> gatewaySelector.retry(request, "data", path))
                 .thenApply(this::handleResponse)
-                .thenApply(Result::empty);
+                .thenApply(Result::empty)
+                .thenApply((result) -> {
+                    logger.debug("DELETE data: path='{}'; result={}", path, result);
+                    return result;
+                });
     }
 
     private Map<String, ?> handleResponse(ApiResponse response) {
@@ -209,14 +238,12 @@ public class StyraRun {
         return future;
     }
 
-    private CompletableFuture<URI> makeUri(Gateway gateway, String... path) {
-        CompletableFuture<URI> future = new CompletableFuture<>();
-        try {
-            future.complete(Utils.Url.appendPath(gateway.getUri(), path));
-        } catch (Exception e) {
-            future.completeExceptionally(e);
-        }
-        return future;
+    public static Builder builder(String url, String token) {
+        return new Builder(url, token);
+    }
+
+    private Map<String, String> getCommonHeaders() {
+        return Collections.singletonMap("Authorization", String.format("Bearer %s", token));
     }
 
     public static class Query {
@@ -268,7 +295,7 @@ public class StyraRun {
         }
     }
 
-    static class BatchQuery {
+    static class BatchQuery implements SerializableAsMap {
         private final List<Query> items;
         private final Input<?> input;
 
@@ -301,6 +328,7 @@ public class StyraRun {
                     .collect(Collectors.toList());
         }
 
+        @Override
         public Map<String, ?> toMap() {
             Map<String, Object> map = new HashMap<>();
             map.put("items", items.stream()
@@ -338,10 +366,6 @@ public class StyraRun {
         public CompletableFuture<ListResult> query() {
             return batchQuery(items, input);
         }
-    }
-
-    public static Builder builder(String url, String token) {
-        return new Builder(url, token);
     }
 
     // TODO: configurable API-client
@@ -387,6 +411,11 @@ public class StyraRun {
             return this;
         }
 
+        public Builder gatewaySelectionStrategy(GatewaySelectionStrategy.Factory factory) {
+            this.gatewaySelectionStrategyFactory = factory;
+            return this;
+        }
+
         public Builder lookupGateways(boolean lookupGateways) {
             this.lookupGateways = lookupGateways;
             return this;
@@ -417,42 +446,6 @@ public class StyraRun {
             return new StyraRun(token, new LoggingApiClient(apiClient),
                     json, gatewaySelector, batchQueryItemsMax);
         }
-    }
-
-    static class ApiRequest {
-        final URI uri;
-        final String body;
-
-        private ApiRequest(URI uri, String body) {
-            this.uri = uri;
-            this.body = body;
-        }
-    }
-
-    private static class HeadersBuilder {
-        private final Map<String, String> headers = new HashMap<>();
-
-        HeadersBuilder authorization(String token) {
-            headers.put("Authorization", String.format("Bearer %s", token));
-            return this;
-        }
-
-        HeadersBuilder contentType(String contentType) {
-            headers.put("Content-Type", contentType);
-            return this;
-        }
-
-        HeadersBuilder json() {
-            return contentType("application/json");
-        }
-
-        Map<String, String> toMap() {
-            return Collections.unmodifiableMap(headers);
-        }
-    }
-
-    private HeadersBuilder makeHeadersBuilder() {
-        return new HeadersBuilder().authorization(token);
     }
 }
 

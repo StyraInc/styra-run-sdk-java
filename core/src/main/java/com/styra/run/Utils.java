@@ -121,13 +121,18 @@ public interface Utils {
 
     final class Lambdas {
         @FunctionalInterface
-        interface CheckedBiConsumer<T, U, E extends Throwable> {
+        public interface CheckedBiConsumer<T, U, E extends Throwable> {
             void accept(T t, U u) throws E;
         }
 
         @FunctionalInterface
-        interface CheckedConsumer<T, E extends Throwable> {
+        public interface CheckedConsumer<T, E extends Throwable> {
             void accept(T t) throws E;
+        }
+
+        @FunctionalInterface
+        public interface CheckedSupplier<T, E extends Throwable> {
+            T get() throws E;
         }
     }
 
@@ -162,6 +167,16 @@ public interface Utils {
                     .thenApply((Void) -> futures.stream()
                             .map(CompletableFuture::join)
                             .collect(Collectors.toList()));
+        }
+
+        public static <T> CompletableFuture<T> async(Lambdas.CheckedSupplier<T, Exception> unsafe) {
+            try {
+                return CompletableFuture.completedFuture(unsafe.get());
+            } catch (Exception e) {
+                CompletableFuture<T> future = new CompletableFuture<>();
+                future.completeExceptionally(e);
+                return future;
+            }
         }
     }
 }

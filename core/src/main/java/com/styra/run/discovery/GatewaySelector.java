@@ -1,5 +1,6 @@
 package com.styra.run.discovery;
 
+import com.styra.run.ApiClient.RequestBuilder;
 import com.styra.run.ApiResponse;
 import com.styra.run.RetryException;
 import com.styra.run.StyraRunException;
@@ -12,6 +13,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static com.styra.run.Utils.Futures.async;
+import static com.styra.run.Utils.Url.appendPath;
 
 public abstract class GatewaySelector {
     private static final Logger logger = LoggerFactory.getLogger(GatewaySelector.class);
@@ -26,6 +30,12 @@ public abstract class GatewaySelector {
     public GatewaySelector(GatewaySelectionStrategy.Factory gatewaySelectionStrategyFactory, int maxAttempts) {
         this.gatewaySelectionStrategyFactory = gatewaySelectionStrategyFactory;
         this.maxAttempts = maxAttempts;
+    }
+
+    public CompletableFuture<ApiResponse> retry(RequestBuilder request, String... path) {
+        return retry(gateway -> async(() -> appendPath(gateway.getUri(), path))
+                .thenApply(request::uri)
+                .thenCompose(RequestBuilder::request));
     }
 
     public CompletableFuture<ApiResponse> retry(Function<Gateway, CompletableFuture<ApiResponse>> request) {

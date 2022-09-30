@@ -3,7 +3,7 @@ package com.styra.run;
 import java.util.Collections;
 import java.util.Map;
 
-public class Input<T> {
+public class Input<T> implements SerializableAsMap {
     private static final Input<Void> EMPTY = new Input<>(null);
     private final T value;
 
@@ -19,12 +19,13 @@ public class Input<T> {
         return value;
     }
 
-    public Map<String, ?> toMap() {
-        return Collections.singletonMap("input", value);
-    }
-
     public boolean isEmpty() {
         return value == null;
+    }
+
+    @Override
+    public Map<String, ?> toMap() {
+        return Collections.singletonMap("input", value);
     }
 
     @Override
