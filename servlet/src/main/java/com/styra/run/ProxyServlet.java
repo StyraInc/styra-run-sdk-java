@@ -6,7 +6,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -40,7 +39,11 @@ public final class ProxyServlet extends StyraRunServlet {
 
                     styraRun.batchQuery(items, globalInput)
                             .thenAccept((result) ->
-                                    writeOkJsonResponse(result.withoutAttributes().toMap(), response, out, async));
+                                    writeOkJsonResponse(result.withoutAttributes().toMap(), response, out, async))
+                            .exceptionally((e) -> {
+                                handleError("Batch query failed", e, async, response);
+                                return null;
+                            });
                 });
     }
 }

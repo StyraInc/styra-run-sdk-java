@@ -2,6 +2,7 @@ package com.styra.run;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +33,8 @@ public interface Utils {
             try {
                 return new URI(base.getScheme(), base.getHost(), joinedPath, base.getFragment());
             } catch (URISyntaxException e) {
-                throw new StyraRunException("Failed to construct API URI", e);
+                throw new StyraRunException(String.format("Failed to construct URI from base '%s' and path '%s'",
+                        base, Arrays.toString(path)), e);
             }
         }
     }

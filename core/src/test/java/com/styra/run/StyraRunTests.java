@@ -87,6 +87,7 @@ public class StyraRunTests {
 
         try {
             StyraRun.builder(url, DEFAULT_TOKEN)
+                    .lookupGateways(false)
                     .apiClient(mockedApiClient)
                     .build()
                     .query(path)
@@ -307,6 +308,7 @@ public class StyraRunTests {
         };
 
         var result = StyraRun.builder(DEFAULT_BASE_URL, DEFAULT_TOKEN)
+                .lookupGateways(false)
                 .apiClient(mockedApiClient)
                 .build()
                 .getData(DEFAULT_PATH)
@@ -339,6 +341,7 @@ public class StyraRunTests {
         };
 
         var result = StyraRun.builder(DEFAULT_BASE_URL, DEFAULT_TOKEN)
+                .lookupGateways(false)
                 .apiClient(mockedApiClient)
                 .build()
                 .putData(DEFAULT_PATH, data)
@@ -358,6 +361,7 @@ public class StyraRunTests {
         };
 
         var result = StyraRun.builder(DEFAULT_BASE_URL, DEFAULT_TOKEN)
+                .lookupGateways(false)
                 .apiClient(mockedApiClient)
                 .build()
                 .deleteData(DEFAULT_PATH)

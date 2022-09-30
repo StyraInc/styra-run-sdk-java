@@ -1,6 +1,12 @@
 package com.styra.run;
 
 import com.styra.run.Utils.Null;
+import com.styra.run.discovery.ApiGatewaySelector;
+import com.styra.run.discovery.Gateway;
+import com.styra.run.discovery.GatewaySelectionStrategy;
+import com.styra.run.discovery.GatewaySelector;
+import com.styra.run.discovery.SimpleGatewaySelectionStrategy;
+import com.styra.run.discovery.StaticGatewaySelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +21,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -26,22 +33,18 @@ public class StyraRun {
 
     private final ApiClient apiClient;
     private final Json json;
-    private final URI baseUri;
-    private final URI batchUri;
+    private final GatewaySelector gatewaySelector;
     private final String token;
     private final int batchQueryItemsMax;
 
-    private StyraRun(URI baseUri,
-                     URI batchUri,
-                     String token,
+    private StyraRun(String token,
                      ApiClient apiClient,
                      Json json,
-                     int batchQueryItemsMax) {
-        this.baseUri = baseUri;
+                     GatewaySelector gatewaySelector, int batchQueryItemsMax) {
         this.token = token;
         this.apiClient = apiClient;
         this.json = json;
-        this.batchUri = batchUri;
+        this.gatewaySelector = gatewaySelector;
         this.batchQueryItemsMax = batchQueryItemsMax;
     }
 
@@ -61,9 +64,9 @@ public class StyraRun {
                 Input::toMap,
                 Collections.emptyMap());
 
-        return makeUri("data", path)
-                .thenCombine(toJson(body), ApiRequest::new)
-                .thenCompose((request) -> apiClient.post(request.uri, request.body, headers.toMap()))
+        return gatewaySelector.retry((gateway) -> makeUri(gateway, "data", path)
+                        .thenCombine(toJson(body), ApiRequest::new)
+                        .thenCompose((request) -> apiClient.post(request.uri, request.body, headers.toMap())))
                 .thenApply(this::handleResponse)
                 .thenApply(Result::fromResponseMap)
                 .thenApply((result) -> {
@@ -106,8 +109,9 @@ public class StyraRun {
 
     private CompletableFuture<ListResult> batchQuery(BatchQuery query) {
         HeadersBuilder headers = makeHeadersBuilder().json();
-        return toJson(query.toMap())
-                .thenCompose((json) -> apiClient.post(batchUri, json, headers.toMap()))
+        return gatewaySelector.retry((gateway) -> makeUri(gateway, "data_batch")
+                        .thenCombine(toJson(query.toMap()), ApiRequest::new)
+                        .thenCompose((request) -> apiClient.post(request.uri, request.body, headers.toMap())))
                 .thenApply(this::handleResponse)
                 .thenApply(ListResult::fromResponseMap);
     }
@@ -145,8 +149,8 @@ public class StyraRun {
         Objects.requireNonNull(path, "path must not be null");
 
         HeadersBuilder headers = makeHeadersBuilder();
-        return makeUri("data", path)
-                .thenCompose((url) -> apiClient.get(url, headers.toMap()))
+        return gatewaySelector.retry((gateway -> makeUri(gateway, "data", path)
+                        .thenCompose((url) -> apiClient.get(url, headers.toMap()))))
                 .thenApply((response) -> {
                     if (response.isNotFoundStatus()) {
                         return new Result<>(defaultSupplier.get());
@@ -161,9 +165,9 @@ public class StyraRun {
         Objects.requireNonNull(data, "data must not be null");
 
         HeadersBuilder headers = makeHeadersBuilder().json();
-        return makeUri("data", path)
-                .thenCombine(toJson(data), ApiRequest::new)
-                .thenCompose((request) -> apiClient.put(request.uri, request.body, headers.toMap()))
+        return gatewaySelector.retry((gateway) -> makeUri(gateway, "data", path)
+                        .thenCombine(toJson(data), ApiRequest::new)
+                        .thenCompose((request) -> apiClient.put(request.uri, request.body, headers.toMap())))
                 .thenApply(this::handleResponse)
                 .thenApply(Result::empty);
     }
@@ -172,8 +176,8 @@ public class StyraRun {
         Objects.requireNonNull(path, "path must not be null");
 
         HeadersBuilder headers = makeHeadersBuilder().json();
-        return makeUri("data", path)
-                .thenCompose((url) -> apiClient.delete(url, headers.toMap()))
+        return gatewaySelector.retry((gateway) -> makeUri(gateway, "data", path)
+                        .thenCompose((url) -> apiClient.delete(url, headers.toMap())))
                 .thenApply(this::handleResponse)
                 .thenApply(Result::empty);
     }
@@ -205,11 +209,11 @@ public class StyraRun {
         return future;
     }
 
-    private CompletableFuture<URI> makeUri(String... path) {
+    private CompletableFuture<URI> makeUri(Gateway gateway, String... path) {
         CompletableFuture<URI> future = new CompletableFuture<>();
         try {
-            future.complete(Utils.Url.appendPath(baseUri, path));
-        } catch (StyraRunException e) {
+            future.complete(Utils.Url.appendPath(gateway.getUri(), path));
+        } catch (Exception e) {
             future.completeExceptionally(e);
         }
         return future;
@@ -340,12 +344,17 @@ public class StyraRun {
         return new Builder(url, token);
     }
 
+    // TODO: configurable API-client
+    // TODO: configurable discovery strategy
     public static final class Builder {
         private final String uri;
         private final String token;
         private ApiClient apiClient;
+        private GatewaySelectionStrategy.Factory gatewaySelectionStrategyFactory = new SimpleGatewaySelectionStrategy.Factory();
         private Json json;
         private int batchQueryItemsMax = 20;
+        private int maxRetryAttempts = 3;
+        private boolean lookupGateways = true;
 
         public Builder(String url, String token) {
             this.uri = Objects.requireNonNull(url, "url must not be null");
@@ -370,13 +379,24 @@ public class StyraRun {
             return this;
         }
 
+        public Builder maxRetryAttempts(int max) {
+            if (max <= 0) {
+                throw new IllegalArgumentException("max must not be zero or negative");
+            }
+            this.maxRetryAttempts = max;
+            return this;
+        }
+
+        public Builder lookupGateways(boolean lookupGateways) {
+            this.lookupGateways = lookupGateways;
+            return this;
+        }
+
         public StyraRun build() {
             URI baseUri;
-            URI batchUri;
             try {
                 baseUri = new URI(uri);
-                batchUri = Utils.Url.appendPath(baseUri, "data_batch");
-            } catch (URISyntaxException | StyraRunException e) {
+            } catch (URISyntaxException e) {
                 throw new IllegalStateException("Malformed API URI", e);
             }
 
@@ -386,8 +406,16 @@ public class StyraRun {
             Json json = Null.firstNonNull(
                     () -> this.json, Json::new);
 
-            return new StyraRun(baseUri, batchUri, token, new LoggingApiClient(apiClient),
-                    json, batchQueryItemsMax);
+            GatewaySelector gatewaySelector;
+            if (lookupGateways) {
+                gatewaySelector = new ApiGatewaySelector(gatewaySelectionStrategyFactory, maxRetryAttempts, apiClient);
+            } else {
+                gatewaySelector = new StaticGatewaySelector(
+                        gatewaySelectionStrategyFactory, maxRetryAttempts, Collections.singletonList(new Gateway(baseUri)));
+            }
+
+            return new StyraRun(token, new LoggingApiClient(apiClient),
+                    json, gatewaySelector, batchQueryItemsMax);
         }
     }
 
