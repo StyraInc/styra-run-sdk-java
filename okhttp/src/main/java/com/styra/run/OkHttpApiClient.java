@@ -17,31 +17,12 @@ class OkHttpApiClient implements ApiClient {
     }
 
     @Override
-    public CompletableFuture<ApiResponse> get(URI uri, Map<String, String> headers) {
-        return request("GET", uri, null, headers);
-    }
-
-    @Override
-    public CompletableFuture<ApiResponse> put(URI uri, String body, Map<String, String> headers) {
-        return request("PUT", uri, body, headers);
-    }
-
-    @Override
-    public CompletableFuture<ApiResponse> post(URI uri, String body, Map<String, String> headers) {
-        return request("POST", uri, body, headers);
-    }
-
-    @Override
-    public CompletableFuture<ApiResponse> delete(URI uri, Map<String, String> headers) {
-        return request("DELETE", uri, null, headers);
-    }
-
-    public CompletableFuture<ApiResponse> request(String method, URI uri, String body, Map<String, String> headers) {
+    public CompletableFuture<ApiResponse> request(Method method, URI uri, Map<String, String> headers, String body) {
         return toUrl(uri).thenCompose((url) -> {
             Request request = new Request.Builder()
                     .url(url)
                     .headers(Headers.of(headers))
-                    .method(method, body != null ? RequestBody.create(body, MediaType.get("application/json")) : null)
+                    .method(method.name(), body != null ? RequestBody.create(body, MediaType.get("application/json")) : null)
                     .build();
             return handleResponse(client.newCall(request));
         });

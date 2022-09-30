@@ -11,41 +11,18 @@ public class DefaultApiClient implements ApiClient {
     private final HttpClient client = HttpClient.newHttpClient();
 
     @Override
-    public CompletableFuture<ApiResponse> get(URI uri, Map<String, String> headers) {
-        return sendAsync(requestBuilder(uri, headers)
-                .GET()
-                .build());
-    }
-
-    @Override
-    public CompletableFuture<ApiResponse> put(URI uri, String body, Map<String, String> headers) {
-        return sendAsync(requestBuilder(uri, headers)
-                .PUT(HttpRequest.BodyPublishers.ofString(body))
-                .build());
-    }
-
-    @Override
-    public CompletableFuture<ApiResponse> post(URI uri, String body, Map<String, String> headers) {
-        return sendAsync(requestBuilder(uri, headers)
-                .POST(HttpRequest.BodyPublishers.ofString(body))
-                .build());
-    }
-
-    @Override
-    public CompletableFuture<ApiResponse> delete(URI uri, Map<String, String> headers) {
-        return sendAsync(requestBuilder(uri, headers)
-                .DELETE()
-                .build());
-    }
-
-    private static HttpRequest.Builder requestBuilder(URI uri, Map<String, String> headers) {
+    public CompletableFuture<ApiResponse> request(Method method, URI uri, Map<String, String> headers, String body) {
         var requestBuilder = HttpRequest.newBuilder(uri);
         headers.forEach(requestBuilder::header);
-        return requestBuilder;
-    }
+        switch (method) {
+            case GET: requestBuilder.GET(); break;
+            case PUT: requestBuilder.PUT(HttpRequest.BodyPublishers.ofString(body)); break;
+            case POST: requestBuilder.POST(HttpRequest.BodyPublishers.ofString(body)); break;
+            case DELETE: requestBuilder.DELETE(); break;
+            default: return CompletableFuture.failedFuture(new StyraRunException(String.format("Unsupported method %s", method)));
+        }
 
-    private CompletableFuture<ApiResponse> sendAsync(HttpRequest request) {
-        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+        return client.sendAsync(requestBuilder.build(), HttpResponse.BodyHandlers.ofString())
                 .thenApply((response) -> new ApiResponse(response.statusCode(), response.body()));
     }
 }

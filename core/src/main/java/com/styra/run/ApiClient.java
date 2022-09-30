@@ -6,24 +6,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public interface ApiClient {
-    CompletableFuture<ApiResponse> get(URI uri, Map<String, String> headers);
-
-    CompletableFuture<ApiResponse> put(URI uri, String body, Map<String, String> headers);
-
-    CompletableFuture<ApiResponse> post(URI uri, String body, Map<String, String> headers);
-
-    CompletableFuture<ApiResponse> delete(URI uri, Map<String, String> headers);
-
-    // TODO: make the only request method
-    default CompletableFuture<ApiResponse> request(Method method, URI uri, Map<String, String> headers, String body) {
-        switch (method) {
-            case GET: return get(uri, headers);
-            case PUT: return put(uri, body, headers);
-            case POST: return post(uri, body, headers);
-            case DELETE: return delete(uri, headers);
-            default: throw new IllegalArgumentException("Unknown method: " + method);
-        }
-    }
+    CompletableFuture<ApiResponse> request(Method method, URI uri, Map<String, String> headers, String body);
 
     default RequestBuilder requestBuilder(Method method) {
         return new RequestBuilder(this, method);

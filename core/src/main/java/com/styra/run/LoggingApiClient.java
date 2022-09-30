@@ -17,38 +17,6 @@ public class LoggingApiClient implements ApiClient {
     }
 
     @Override
-    public CompletableFuture<ApiResponse> get(URI uri, Map<String, String> headers) {
-        UUID uuid = UUID.randomUUID();
-        logger.trace("API GET '{}'; uuid:{}; headers={}", uri, uuid, headers);
-        return delegate.get(uri, headers)
-                .thenApply((response -> logResponse(response, uuid)));
-    }
-
-    @Override
-    public CompletableFuture<ApiResponse> put(URI uri, String body, Map<String, String> headers) {
-        UUID uuid = UUID.randomUUID();
-        logger.trace("API PUT '{}'; uuid:{}; headers={}; body='{}'", uri, uuid, headers, body);
-        return delegate.put(uri, body, headers)
-                .thenApply((response -> logResponse(response, uuid)));
-    }
-
-    @Override
-    public CompletableFuture<ApiResponse> post(URI uri, String body, Map<String, String> headers) {
-        UUID uuid = UUID.randomUUID();
-        logger.trace("API POST '{}'; uuid:{}; headers={}; body='{}'", uri, uuid, headers, body);
-        return delegate.post(uri, body, headers)
-                .thenApply((response -> logResponse(response, uuid)));
-    }
-
-    @Override
-    public CompletableFuture<ApiResponse> delete(URI uri, Map<String, String> headers) {
-        UUID uuid = UUID.randomUUID();
-        logger.trace("API DELETE '{}'; uuid:{}; headers={}", uri, uuid, headers);
-        return delegate.delete(uri, headers)
-                .thenApply((response -> logResponse(response, uuid)));
-    }
-
-    @Override
     public CompletableFuture<ApiResponse> request(Method method, URI uri, Map<String, String> headers, String body) {
         UUID uuid = UUID.randomUUID();
         logger.trace("API {} '{}'; uuid:{}; headers={}; body='{}'", method, uri, uuid, headers, body);

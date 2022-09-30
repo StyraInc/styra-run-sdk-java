@@ -390,23 +390,29 @@ public class StyraRunTests {
 }
 
 abstract class ApiClientMock implements ApiClient {
-    @Override
     public CompletableFuture<ApiResponse> get(URI uri, Map<String, String> headers) {
         throw new IllegalStateException("Unexpected GET request");
     }
 
-    @Override
     public CompletableFuture<ApiResponse> put(URI uri, String body, Map<String, String> headers) {
         throw new IllegalStateException("Unexpected PUT request");
     }
 
-    @Override
     public CompletableFuture<ApiResponse> post(URI uri, String body, Map<String, String> headers) {
         throw new IllegalStateException("Unexpected POST request");
     }
 
-    @Override
     public CompletableFuture<ApiResponse> delete(URI uri, Map<String, String> headers) {
         throw new IllegalStateException("Unexpected DELETE request");
+    }
+
+    @Override
+    public CompletableFuture<ApiResponse> request(Method method, URI uri, Map<String, String> headers, String body) {
+        return switch (method) {
+            case GET -> get(uri, headers);
+            case PUT -> put(uri, body, headers);
+            case POST -> post(uri, body, headers);
+            case DELETE -> delete(uri, headers);
+        };
     }
 }
