@@ -31,16 +31,24 @@ public class StyraRunTests {
     @Test
     void builder() {
         var urlException = assertThrows(NullPointerException.class,
-                () -> StyraRun.builder(null, "foo"));
+                () -> StyraRun.builder((String) null, "foo"));
         assertEquals("url must not be null", urlException.getMessage());
+
+        var gatewaysException = assertThrows(NullPointerException.class,
+                () -> StyraRun.builder((List<String>) null, "foo"));
+        assertEquals("gateways must not be null", gatewaysException.getMessage());
 
         var tokenException = assertThrows(NullPointerException.class,
                 () -> StyraRun.builder("https://example.com", null));
         assertEquals("token must not be null", tokenException.getMessage());
 
-        var invalidUrlException = assertThrows(IllegalStateException.class,
+        var invalidEnvUrlException = assertThrows(IllegalStateException.class,
                 () -> StyraRun.builder("invalid{}", "token").build());
-        assertEquals("Malformed API URI", invalidUrlException.getMessage());
+        assertEquals("Malformed environment URI: invalid{}", invalidEnvUrlException.getMessage());
+
+        var invalidGatewayUrlException = assertThrows(IllegalStateException.class,
+                () -> StyraRun.builder(List.of("invalid{}"), "token").build());
+        assertEquals("Malformed gateway URI: invalid{}", invalidGatewayUrlException.getMessage());
     }
 
     @ParameterizedTest
@@ -86,8 +94,7 @@ public class StyraRunTests {
         };
 
         try {
-            StyraRun.builder(url, DEFAULT_TOKEN)
-                    .lookupGateways(false)
+            StyraRun.builder(List.of(url), DEFAULT_TOKEN)
                     .apiClient(mockedApiClient)
                     .build()
                     .query(path)
@@ -307,8 +314,7 @@ public class StyraRunTests {
             }
         };
 
-        var result = StyraRun.builder(DEFAULT_BASE_URL, DEFAULT_TOKEN)
-                .lookupGateways(false)
+        var result = StyraRun.builder(List.of(DEFAULT_BASE_URL), DEFAULT_TOKEN)
                 .apiClient(mockedApiClient)
                 .build()
                 .getData(DEFAULT_PATH)
@@ -340,8 +346,7 @@ public class StyraRunTests {
             }
         };
 
-        var result = StyraRun.builder(DEFAULT_BASE_URL, DEFAULT_TOKEN)
-                .lookupGateways(false)
+        var result = StyraRun.builder(List.of(DEFAULT_BASE_URL), DEFAULT_TOKEN)
                 .apiClient(mockedApiClient)
                 .build()
                 .putData(DEFAULT_PATH, data)
@@ -360,8 +365,7 @@ public class StyraRunTests {
             }
         };
 
-        var result = StyraRun.builder(DEFAULT_BASE_URL, DEFAULT_TOKEN)
-                .lookupGateways(false)
+        var result = StyraRun.builder(List.of(DEFAULT_BASE_URL), DEFAULT_TOKEN)
                 .apiClient(mockedApiClient)
                 .build()
                 .deleteData(DEFAULT_PATH)

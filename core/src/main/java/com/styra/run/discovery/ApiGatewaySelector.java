@@ -8,10 +8,12 @@ import java.util.List;
 
 public final class ApiGatewaySelector extends GatewaySelector {
     private final ApiClient apiClient;
+    private final URI envUri;
 
-    public ApiGatewaySelector(GatewaySelectionStrategy.Factory discoveryStrategyFactory, int maxAttempts, ApiClient apiClient) {
+    public ApiGatewaySelector(GatewaySelectionStrategy.Factory discoveryStrategyFactory, int maxAttempts, ApiClient apiClient, URI envUri) {
         super(discoveryStrategyFactory, maxAttempts);
         this.apiClient = apiClient;
+        this.envUri = envUri;
     }
 
     protected List<Gateway> fetchGateways() {

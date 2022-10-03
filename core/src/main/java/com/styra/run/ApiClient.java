@@ -26,7 +26,7 @@ public interface ApiClient {
         private URI uri;
         private String body;
 
-        public RequestBuilder(ApiClient apiClient, Method method) {
+        RequestBuilder(ApiClient apiClient, Method method) {
             this.apiClient = apiClient;
             this.method = method;
         }

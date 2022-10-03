@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'groovy'
 }
 
 group 'com.styra.run'
@@ -33,6 +34,8 @@ dependencies {
     implementation 'org.slf4j:slf4j-api:2.0.0'
     implementation 'com.fasterxml.jackson.jr:jackson-jr-objects:2.13.3'
 
+    testImplementation 'org.apache.groovy:groovy:4.0.5'
+    testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-params:5.9.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.0'

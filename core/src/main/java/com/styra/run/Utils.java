@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -177,6 +178,19 @@ public interface Utils {
                 future.completeExceptionally(e);
                 return future;
             }
+        }
+
+        public static <T> CompletableFuture<T> failedFuture(Throwable e) {
+            CompletableFuture<T> future = new CompletableFuture<>();
+            future.completeExceptionally(e);
+            return future;
+        }
+
+        public static Throwable unwrapCompletionException(Throwable e) {
+            if (e instanceof CompletionException) {
+                return unwrapCompletionException(e.getCause());
+            }
+            return e;
         }
     }
 }

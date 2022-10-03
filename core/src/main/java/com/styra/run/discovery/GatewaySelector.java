@@ -4,6 +4,7 @@ import com.styra.run.ApiClient.RequestBuilder;
 import com.styra.run.ApiResponse;
 import com.styra.run.RetryException;
 import com.styra.run.StyraRunException;
+import com.styra.run.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,10 +13,13 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static com.styra.run.Utils.Futures.async;
+import static com.styra.run.Utils.Futures.failedFuture;
 import static com.styra.run.Utils.Url.appendPath;
+import static java.util.concurrent.CompletableFuture.completedFuture;
 
 public abstract class GatewaySelector {
     private static final Logger logger = LoggerFactory.getLogger(GatewaySelector.class);
@@ -38,31 +42,37 @@ public abstract class GatewaySelector {
                 .thenCompose(RequestBuilder::request));
     }
 
-    public CompletableFuture<ApiResponse> retry(Function<Gateway, CompletableFuture<ApiResponse>> request) {
+    private CompletableFuture<ApiResponse> retry(Function<Gateway, CompletableFuture<ApiResponse>> request) {
         return getGatewaySelectionStrategy()
-                .thenCompose((strategy) -> retry(request, strategy, strategy.current(), 1));
+                .thenCompose((strategy) -> retry(request, strategy, strategy.current(), 1,
+                        () -> failedFuture(new StyraRunException("No API request attempts allowed"))));
     }
 
-    private CompletableFuture<ApiResponse> retry(Function<Gateway, CompletableFuture<ApiResponse>> request, GatewaySelectionStrategy strategy, Gateway gateway, int attempt) {
-        if (attempt > maxAttempts || attempt > strategy.size()) {
-            CompletableFuture<ApiResponse> future = new CompletableFuture<>();
-            // TODO: Add TooManyAttemptsException
-            future.completeExceptionally(new StyraRunException("Too many attempts"));
-            return future;
+    // TODO: add logging
+    private CompletableFuture<ApiResponse> retry(Function<Gateway, CompletableFuture<ApiResponse>> request,
+                                                 GatewaySelectionStrategy strategy,
+                                                 Gateway gateway,
+                                                 int attempt,
+                                                 Supplier<CompletableFuture<ApiResponse>> onTooManyAttempts) {
+        if (gateway == null || attempt > maxAttempts || attempt > strategy.size()) {
+            return onTooManyAttempts.get();
         }
 
         return request.apply(gateway)
                 .thenCompose((response) -> {
                     if (STATUS_CODES_TO_RETRY.contains(response.getStatusCode())) {
-                        return retry(request, strategy, strategy.nextIfMatch(gateway), attempt + 1);
+                        return retry(request, strategy, strategy.nextIfMatch(gateway), attempt + 1,
+                                () -> completedFuture(response));
                     }
-                    return CompletableFuture.completedFuture(response);
+                    return completedFuture(response);
                 })
                 .exceptionallyCompose((e) -> {
-                    if (e instanceof RetryException) {
-                        return retry(request, strategy, strategy.nextIfMatch(gateway), attempt + 1);
+                    Throwable unwrapped = Utils.Futures.unwrapCompletionException(e);
+                    if (unwrapped instanceof RetryException) {
+                        return retry(request, strategy, strategy.nextIfMatch(gateway), attempt + 1,
+                                () -> failedFuture(unwrapped.getCause()));
                     }
-                    throw new CompletionException(e);
+                    throw new CompletionException(unwrapped);
                 });
     }
 
@@ -76,6 +86,9 @@ public abstract class GatewaySelector {
                 if (discoveryStrategy == null) {
                     logger.trace("Fetching gateways");
                     List<Gateway> gateways = fetchGateways();
+                    if (gateways.isEmpty()) {
+                        return failedFuture(new StyraRunException("No gateways could be fetched"));
+                    }
                     logger.debug("Gateways: {}", gateways.stream()
                             .map((g) -> g.getUri().toString())
                             .collect(Collectors.joining(", ")));
@@ -83,6 +96,6 @@ public abstract class GatewaySelector {
                 }
             }
         }
-        return CompletableFuture.completedFuture(discoveryStrategy);
+        return completedFuture(discoveryStrategy);
     }
 }

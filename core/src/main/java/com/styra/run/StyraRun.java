@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -242,6 +243,10 @@ public class StyraRun {
         return new Builder(url, token);
     }
 
+    public static Builder builder(List<String> gateways, String token) {
+        return new Builder(gateways, token);
+    }
+
     private Map<String, String> getCommonHeaders() {
         return Collections.singletonMap("Authorization", String.format("Bearer %s", token));
     }
@@ -371,17 +376,24 @@ public class StyraRun {
     // TODO: configurable API-client
     // TODO: configurable discovery strategy
     public static final class Builder {
-        private final String uri;
+        private final String envUri;
+        private final List<String> gateways;
         private final String token;
         private ApiClient apiClient;
         private GatewaySelectionStrategy.Factory gatewaySelectionStrategyFactory = new SimpleGatewaySelectionStrategy.Factory();
         private Json json;
         private int batchQueryItemsMax = 20;
         private int maxRetryAttempts = 3;
-        private boolean lookupGateways = true;
 
-        public Builder(String url, String token) {
-            this.uri = Objects.requireNonNull(url, "url must not be null");
+        public Builder(String envUri, String token) {
+            this.envUri = Objects.requireNonNull(envUri, "url must not be null");
+            this.gateways = null;
+            this.token = Objects.requireNonNull(token, "token must not be null");
+        }
+
+        public Builder(List<String> gateways, String token) {
+            this.envUri = null;
+            this.gateways = Objects.requireNonNull(gateways, "gateways must not be null");
             this.token = Objects.requireNonNull(token, "token must not be null");
         }
 
@@ -416,17 +428,26 @@ public class StyraRun {
             return this;
         }
 
-        public Builder lookupGateways(boolean lookupGateways) {
-            this.lookupGateways = lookupGateways;
-            return this;
-        }
-
         public StyraRun build() {
-            URI baseUri;
-            try {
-                baseUri = new URI(uri);
-            } catch (URISyntaxException e) {
-                throw new IllegalStateException("Malformed API URI", e);
+            GatewaySelector gatewaySelector;
+            if (envUri != null) {
+                try {
+                    gatewaySelector = new ApiGatewaySelector(gatewaySelectionStrategyFactory, maxRetryAttempts, apiClient, new URI(envUri));
+                } catch (URISyntaxException e) {
+                    throw new IllegalStateException(String.format("Malformed environment URI: %s", envUri), e);
+                }
+            } else if (gateways != null) {
+                List<Gateway> list = new ArrayList<>();
+                for (String gateway : gateways) {
+                    try {
+                        list.add(new Gateway(new URI(gateway)));
+                    } catch (URISyntaxException e) {
+                        throw new IllegalStateException(String.format("Malformed gateway URI: %s", gateway), e);
+                    }
+                }
+                gatewaySelector = new StaticGatewaySelector(gatewaySelectionStrategyFactory, maxRetryAttempts, list);
+            } else {
+                throw new IllegalStateException("Environment URI or gateway list must be set");
             }
 
             ApiClient apiClient = Null.firstNonNull(
@@ -434,14 +455,6 @@ public class StyraRun {
 
             Json json = Null.firstNonNull(
                     () -> this.json, Json::new);
-
-            GatewaySelector gatewaySelector;
-            if (lookupGateways) {
-                gatewaySelector = new ApiGatewaySelector(gatewaySelectionStrategyFactory, maxRetryAttempts, apiClient);
-            } else {
-                gatewaySelector = new StaticGatewaySelector(
-                        gatewaySelectionStrategyFactory, maxRetryAttempts, Collections.singletonList(new Gateway(baseUri)));
-            }
 
             return new StyraRun(token, new LoggingApiClient(apiClient),
                     json, gatewaySelector, batchQueryItemsMax);
