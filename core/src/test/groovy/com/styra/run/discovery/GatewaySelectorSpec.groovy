@@ -1,41 +1,56 @@
 package com.styra.run.discovery
 
-import com.styra.run.ApiResponse
 import com.styra.run.RetryException
 import com.styra.run.StyraRunException
-import com.styra.run.Utils
 import com.styra.run.utils.CountingApiClient
 import spock.lang.Specification
 import spock.lang.Unroll
 
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 
 import static com.styra.run.ApiClient.Method.GET
 import static com.styra.run.utils.apiClients.exceptionalResult
+import static com.styra.run.utils.apiClients.httpResult
 import static com.styra.run.utils.helpers.gatewaysFrom
 
 class GatewaySelectorSpec extends Specification {
-    def "Gateway fetch must not return empty result"() {
-        given: 'an empty list of gateways'
-        def gateways = []
+    def "If gateway fetch fails, it will be performed again on subsequent requests"(
+            Closure<List<Gateway>> gatewaysSupplier, String expectedErrorMessage) {
+        given: 'a factory that will never be called'
+        def factory = Mock(GatewaySelectionStrategy.Factory)
+
+        and: 'a gateway-selector that fails on fetch'
+        def selector = new GatewaySelector(factory, 10) {
+            @Override
+            protected List<Gateway> fetchGateways() {
+                return gatewaysSupplier()
+            }
+        }
 
         and: 'a client that will never be called'
         def client = new CountingApiClient()
 
-        and: 'a gateway-selector'
-        def selector = new StaticGatewaySelector(new SimpleGatewaySelectionStrategy.Factory(), 0, gateways)
-
         when: 'the selector is called'
         selector.retry(client.requestBuilder(GET)).get()
+        factory.create([])
 
         then: 'we get an exception'
         def e = thrown(ExecutionException)
         e.cause instanceof StyraRunException
-        e.cause.message == 'No gateways could be fetched'
+        e.cause.message == expectedErrorMessage
+
+        and: 'the factory was never called'
+        0 * factory.create([])
 
         and: 'the client was never called'
         client.hitCount == 0
+
+        where:
+        gatewaysSupplier                     || expectedErrorMessage
+        ({ -> null })                        || 'No gateways could be fetched'
+        ({ -> [] })                          || 'No gateways could be fetched'
+        ({ -> throw new Exception("Oops") }) || 'Failed to fetch gateways'
+
     }
 
     @Unroll
@@ -44,7 +59,7 @@ class GatewaySelectorSpec extends Specification {
         def gateways = gatewaysFrom(gatewayCount)
 
         and: 'a counting API-client that will always return an error'
-        def client = new CountingApiClient(resultSupplier: exceptionalResult(new RetryException(new StyraRunException("Pass-through error"))))
+        def client = new CountingApiClient(responseSupplier: exceptionalResult(new RetryException(new StyraRunException("Pass-through error"))))
 
         and: 'a gateway-selector'
         def selector = new StaticGatewaySelector(new SimpleGatewaySelectionStrategy.Factory(), maxAttempts, gateways)
@@ -76,7 +91,7 @@ class GatewaySelectorSpec extends Specification {
         def expectedBody = 'foobar'
 
         given: 'a counting API-client that will always return an error'
-        def client = new CountingApiClient(resultSupplier: {-> CompletableFuture.completedFuture(new ApiResponse(statusCode, expectedBody))})
+        def client = new CountingApiClient(responseSupplier: httpResult(statusCode, expectedBody))
 
         and: 'a gateway-selector'
         def selector = new StaticGatewaySelector(new SimpleGatewaySelectionStrategy.Factory(), maxAttempts, gateways)
@@ -114,13 +129,13 @@ class GatewaySelectorSpec extends Specification {
         def gateways = gatewaysFrom(5)
 
         given: 'a counting API-client that will always return an error'
-        def client = new CountingApiClient(resultSupplier: {-> Utils.Futures.failedFuture(exception)})
+        def client = new CountingApiClient(responseSupplier: exceptionalResult(exception))
 
         and: 'a gateway-selector'
         def selector = new StaticGatewaySelector(new SimpleGatewaySelectionStrategy.Factory(), maxAttempts, gateways)
 
         when: 'the selector is called'
-        def response = selector.retry(client.requestBuilder(GET)).get()
+        selector.retry(client.requestBuilder(GET)).get()
 
         then: 'the expected exception was thrown'
         def e = thrown(ExecutionException)

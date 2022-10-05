@@ -1,6 +1,7 @@
 package com.styra.run;
 
 import com.fasterxml.jackson.jr.ob.JSON;
+import com.styra.run.utils.Null;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -26,7 +27,7 @@ public class StyraRunTests {
     private static final String DEFAULT_BASE_URL = "https://example.com";
     private static final String DEFAULT_PATH = "foo/bar";
     private static final URI DEFAULT_DATA_URI = URI.create(String.format("%s/data/%s", DEFAULT_BASE_URL, DEFAULT_PATH));
-    public static final String DEFAULT_TOKEN = "foobar";
+    private static final String DEFAULT_TOKEN = "foobar";
 
     @Test
     void builder() {
@@ -63,7 +64,7 @@ public class StyraRunTests {
             }
         };
 
-        StyraRun.builder(DEFAULT_BASE_URL, token)
+        StyraRun.builder(List.of(DEFAULT_BASE_URL), token)
                 .apiClient(mockedApiClient)
                 .build()
                 .query("/")
@@ -137,7 +138,7 @@ public class StyraRunTests {
             }
         };
 
-        StyraRun.builder(DEFAULT_BASE_URL, DEFAULT_TOKEN)
+        StyraRun.builder(List.of(DEFAULT_BASE_URL), DEFAULT_TOKEN)
                 .apiClient(mockedApiClient)
                 .build()
                 .query(DEFAULT_PATH, new Input<>(input))
@@ -165,8 +166,8 @@ public class StyraRunTests {
             @Override
             public CompletableFuture<ApiResponse> post(URI uri, String body, Map<String, String> headers) {
                 var responseBody = new HashMap<String, String>();
-                Utils.Null.ifNotNull(expectedCode, (v) -> responseBody.put("code", v));
-                Utils.Null.ifNotNull(expectedMessage, (v) -> responseBody.put("message", v));
+                Null.ifNotNull(expectedCode, (v) -> responseBody.put("code", v));
+                Null.ifNotNull(expectedMessage, (v) -> responseBody.put("message", v));
 
                 try {
                     return CompletableFuture.completedFuture(new ApiResponse(statusCode, JSON.std.asString(responseBody)));
@@ -178,7 +179,7 @@ public class StyraRunTests {
         };
 
         try {
-            StyraRun.builder(DEFAULT_BASE_URL, "foobar")
+            StyraRun.builder(List.of(DEFAULT_BASE_URL), "foobar")
                     .apiClient(mockedApiClient)
                     .build()
                     .query(DEFAULT_PATH)
@@ -188,7 +189,7 @@ public class StyraRunTests {
                 var cause = assertInstanceOf(StyraRunHttpException.class, e.getCause());
                 assertEquals(statusCode, cause.getStatusCode());
                 assertEquals(String.format("Unexpected status code: %d", statusCode), cause.getMessage());
-                Utils.Null.ifNotNull(expectedCode, (v) -> assertEquals(v, cause.getApiError().getCode()));
+                Null.ifNotNull(expectedCode, (v) -> assertEquals(v, cause.getApiError().getCode()));
             } else {
                 fail("Unexpected exception");
             }
@@ -218,7 +219,7 @@ public class StyraRunTests {
             }
         };
 
-        var result = StyraRun.builder(DEFAULT_BASE_URL, DEFAULT_TOKEN)
+        var result = StyraRun.builder(List.of(DEFAULT_BASE_URL), DEFAULT_TOKEN)
                 .apiClient(mockedApiClient)
                 .build()
                 .query(DEFAULT_PATH)
@@ -249,7 +250,7 @@ public class StyraRunTests {
             }
         };
 
-        var decision = StyraRun.builder(DEFAULT_BASE_URL, DEFAULT_TOKEN)
+        var decision = StyraRun.builder(List.of(DEFAULT_BASE_URL), DEFAULT_TOKEN)
                 .apiClient(mockedApiClient)
                 .build()
                 .check(DEFAULT_PATH, (result) -> {
@@ -280,7 +281,7 @@ public class StyraRunTests {
             }
         };
 
-        var decision = StyraRun.builder(DEFAULT_BASE_URL, DEFAULT_TOKEN)
+        var decision = StyraRun.builder(List.of(DEFAULT_BASE_URL), DEFAULT_TOKEN)
                 .apiClient(mockedApiClient)
                 .build()
                 .check(DEFAULT_PATH)

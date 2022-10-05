@@ -1,5 +1,7 @@
 package com.styra.run;
 
+import com.styra.run.utils.Null;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -7,7 +9,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static com.styra.run.Utils.Null.firstNonNull;
+import static com.styra.run.utils.Null.firstNonNull;
 import static java.util.Collections.singletonMap;
 
 public class Result<T> implements SerializableAsMap {
@@ -22,7 +24,7 @@ public class Result<T> implements SerializableAsMap {
 
     public Result(T value, Map<String, ?> attributes) {
         this.value = value;
-        this.attributes = Utils.Null.map(attributes, Collections::unmodifiableMap, Collections.emptyMap());
+        this.attributes = Null.map(attributes, Collections::unmodifiableMap, Collections.emptyMap());
     }
 
     public static Result<?> empty() {

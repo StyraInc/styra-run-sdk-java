@@ -9,15 +9,19 @@ import static com.styra.run.utils.apiClients.exceptionalResult
 
 class CountingApiClient implements ApiClient {
     def hitCount = 0
-    Closure<CompletableFuture<ApiResponse>> resultSupplier = exceptionalResult(new Exception("Unknown Error"))
+    Closure<CompletableFuture<ApiResponse>> responseSupplier = exceptionalResult(new Exception("Unknown Error"))
 
     @Override
     CompletableFuture<ApiResponse> request(Method method, URI uri, Map<String, String> headers, String body) {
         ++hitCount
-        return resultSupplier()
+        return responseSupplier(method, uri, headers, body)
     }
 }
 
 static Closure<CompletableFuture<ApiResponse>> exceptionalResult(Exception e) {
-    return {-> CompletableFuture.failedFuture(e)} as Closure<CompletableFuture<ApiResponse>>
+    return { method, uri, headers, body -> CompletableFuture.<ApiResponse> failedFuture(e) }
+}
+
+static Closure<CompletableFuture<ApiResponse>> httpResult(int status, String body) {
+    return { method, uri, headers, _ -> CompletableFuture.completedFuture(new ApiResponse(status, body)) }
 }

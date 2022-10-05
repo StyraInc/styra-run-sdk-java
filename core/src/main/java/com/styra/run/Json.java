@@ -8,12 +8,12 @@ import java.util.Map;
 import java.util.Optional;
 
 // TODO: Make pluggable
-class Json {
-    String from(Object value) throws IOException {
+public class Json {
+    public String from(Object value) throws IOException {
         return JSON.std.asString(value);
     }
 
-    Map<String, ?> toMap(String source) throws IOException {
+    public Map<String, ?> toMap(String source) throws IOException {
         if (source == null) {
             return null;
         }
@@ -21,7 +21,7 @@ class Json {
         return JSON.std.mapFrom(source);
     }
 
-    Optional<Map<String, ?>> toOptionalMap(String source) {
+    public Optional<Map<String, ?>> toOptionalMap(String source) {
         if (source == null) {
             return Optional.empty();
         }
@@ -33,7 +33,7 @@ class Json {
         }
     }
 
-    <T> List<T> toList(Class<T> type, String source) throws IOException {
+    public <T> List<T> toList(Class<T> type, String source) throws IOException {
         if (source == null) {
             return null;
         }
@@ -41,7 +41,7 @@ class Json {
         return JSON.std.listOfFrom(type, source);
     }
 
-    <T> Optional<List<T>> toOptionalList(Class<T> type, String source) {
+    public <T> Optional<List<T>> toOptionalList(Class<T> type, String source) {
         if (source == null) {
             return Optional.empty();
         }
@@ -53,7 +53,7 @@ class Json {
         }
     }
 
-    <T> T to(Class<T> type, String source) throws IOException {
+    public <T> T to(Class<T> type, String source) throws IOException {
         if (source == null) {
             return null;
         }
@@ -61,7 +61,7 @@ class Json {
         return JSON.std.beanFrom(type, source);
     }
 
-    Object toAny(String source) {
+    public Object toAny(String source) {
         if (source == null) {
             return null;
         }

@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
 
-import static com.styra.run.Utils.Types.cast;
+import static com.styra.run.utils.Types.cast;
 
 public abstract class StyraRunServlet extends HttpServlet {
     public static final String STYRA_RUN_ATTR = "com.styra.run.styra-run";

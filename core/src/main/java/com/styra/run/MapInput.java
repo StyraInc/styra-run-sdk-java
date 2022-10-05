@@ -1,5 +1,7 @@
 package com.styra.run;
 
+import com.styra.run.utils.Null;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,7 +31,7 @@ public class MapInput<K, V> extends Input<Map<K, V>> {
     }
 
     public boolean isEmpty() {
-        return Utils.Null.map(getValue(), Map::isEmpty, true);
+        return Null.map(getValue(), Map::isEmpty, true);
     }
 
     public static final class Builder<K, V> {

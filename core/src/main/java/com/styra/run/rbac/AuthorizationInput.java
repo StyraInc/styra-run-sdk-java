@@ -2,14 +2,14 @@ package com.styra.run.rbac;
 
 import com.styra.run.Input;
 import com.styra.run.MapInput;
-import com.styra.run.Utils;
+import com.styra.run.utils.Types;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import static com.styra.run.Utils.Null.firstNonNull;
+import static com.styra.run.utils.Null.firstNonNull;
 
 public class AuthorizationInput extends MapInput<String, Object> {
     private static final String SUBJECT_KEY = "subject";
@@ -35,10 +35,10 @@ public class AuthorizationInput extends MapInput<String, Object> {
     }
 
     public static AuthorizationInput from(Input<?> other) {
-        Map<?, ?> value = Utils.Types.cast(Map.class, firstNonNull(other::getValue, Collections::emptyMap),
+        Map<?, ?> value = Types.cast(Map.class, firstNonNull(other::getValue, Collections::emptyMap),
                 () -> new IllegalArgumentException("other input value is not a Map"));
 
-        return new AuthorizationInput(Utils.Types.castMap(Object.class, value));
+        return new AuthorizationInput(Types.castMap(Object.class, value));
     }
 
     private static Map<String, Object> createMap(String subject, String tenant) {

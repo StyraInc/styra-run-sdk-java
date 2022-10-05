@@ -9,7 +9,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
-import static com.styra.run.Utils.Types.castList;
+import static com.styra.run.utils.Types.castList;
 
 public class RbacManager {
     public static final String AUTHZ_PATH = "rbac/manage/allow";

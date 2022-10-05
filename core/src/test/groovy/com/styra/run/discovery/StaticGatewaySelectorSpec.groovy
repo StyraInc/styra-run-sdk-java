@@ -5,8 +5,8 @@ import spock.lang.Specification
 import static com.styra.run.utils.helpers.gatewayFrom
 
 class StaticGatewaySelectorSpec extends Specification {
-    def "fetchGateways call always return the list of gateways the selector was initialized with"() {
-        def gws = gateways.collect { gatewayFrom(it)}
+    def "Returned list of gateways is same as what the selector was initialized with"() {
+        def gws = gateways.collect { gatewayFrom(it) }
         given: 'a gateway-selector'
         def selector = new StaticGatewaySelector(null, 0, gws)
 

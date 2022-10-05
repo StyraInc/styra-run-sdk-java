@@ -1,7 +1,8 @@
 package com.styra.run;
 
 import com.styra.run.ApiClient.RequestBuilder;
-import com.styra.run.Utils.Null;
+import com.styra.run.utils.Futures;
+import com.styra.run.utils.Null;
 import com.styra.run.discovery.ApiGatewaySelector;
 import com.styra.run.discovery.Gateway;
 import com.styra.run.discovery.GatewaySelectionStrategy;
@@ -31,7 +32,8 @@ import static com.styra.run.ApiClient.Method.DELETE;
 import static com.styra.run.ApiClient.Method.GET;
 import static com.styra.run.ApiClient.Method.POST;
 import static com.styra.run.ApiClient.Method.PUT;
-import static com.styra.run.Utils.Futures.async;
+import static com.styra.run.utils.Futures.async;
+import static com.styra.run.utils.Null.firstNonNull;
 
 public class StyraRun {
     private static final Logger logger = LoggerFactory.getLogger(StyraRun.class);
@@ -105,7 +107,7 @@ public class StyraRun {
                 .map(this::batchQuery)
                 .collect(Collectors.toList());
 
-        return Utils.Futures.allOf(futures)
+        return Futures.allOf(futures)
                 .thenApply((resultList) -> resultList.stream()
                         .reduce(ListResult::append)
                         .orElse(ListResult.empty()))
@@ -221,9 +223,7 @@ public class StyraRun {
         if (!response.isSuccessful()) {
             throw new CompletionException(new StyraRunHttpException(
                     response.getStatusCode(), response.getBody(),
-                    json.toOptionalMap(response.getBody())
-                            .map(ApiError::fromMap)
-                            .orElse(null)));
+                    ApiError.fromApiResponse(response, json)));
         } else {
             return response.getBody();
         }
@@ -248,6 +248,10 @@ public class StyraRun {
     }
 
     private Map<String, String> getCommonHeaders() {
+        return makeAuthorizationHeader(token);
+    }
+
+    private static Map<String, String> makeAuthorizationHeader(String token) {
         return Collections.singletonMap("Authorization", String.format("Bearer %s", token));
     }
 
@@ -263,7 +267,7 @@ public class StyraRun {
 
         public static Query fromMap(Map<?, ?> map) {
             String path = (String) map.get("path");
-            Input<?> input = Utils.Null.map(map.get("input"), Input::new);
+            Input<?> input = Null.map(map.get("input"), Input::new);
             return new Query(path, input);
         }
 
@@ -315,7 +319,7 @@ public class StyraRun {
             List<Query> items = ((List<?>) map.get("items")).stream()
                     .map((item) -> Query.fromMap((Map<?, ?>) item))
                     .collect(Collectors.toList());
-            Input<?> input = Utils.Null.map(map.get("input"), Input::new);
+            Input<?> input = Null.map(map.get("input"), Input::new);
             return new BatchQuery(items, input);
         }
 
@@ -328,7 +332,7 @@ public class StyraRun {
         }
 
         List<BatchQuery> chunk(int chunkSize) {
-            return Utils.Collections.chunk(items, chunkSize).stream()
+            return com.styra.run.utils.Collections.chunk(items, chunkSize).stream()
                     .map((items) -> new BatchQuery(items, input))
                     .collect(Collectors.toList());
         }
@@ -429,10 +433,18 @@ public class StyraRun {
         }
 
         public StyraRun build() {
+            ApiClient apiClient = new LoggingApiClient(firstNonNull(
+                    () -> this.apiClient, ApiClientLoader.loadDefaultClient()::create));
+
+            Json json = firstNonNull(
+                    () -> this.json, Json::new);
+
             GatewaySelector gatewaySelector;
             if (envUri != null) {
                 try {
-                    gatewaySelector = new ApiGatewaySelector(gatewaySelectionStrategyFactory, maxRetryAttempts, apiClient, new URI(envUri));
+                    Supplier<Map<String, String>> headerSupplier = () -> makeAuthorizationHeader(token);
+                    gatewaySelector = new ApiGatewaySelector(gatewaySelectionStrategyFactory, maxRetryAttempts,
+                            apiClient, json, new URI(envUri), headerSupplier);
                 } catch (URISyntaxException e) {
                     throw new IllegalStateException(String.format("Malformed environment URI: %s", envUri), e);
                 }
@@ -450,13 +462,7 @@ public class StyraRun {
                 throw new IllegalStateException("Environment URI or gateway list must be set");
             }
 
-            ApiClient apiClient = Null.firstNonNull(
-                    () -> this.apiClient, ApiClientLoader.loadDefaultClient()::create);
-
-            Json json = Null.firstNonNull(
-                    () -> this.json, Json::new);
-
-            return new StyraRun(token, new LoggingApiClient(apiClient),
+            return new StyraRun(token, apiClient,
                     json, gatewaySelector, batchQueryItemsMax);
         }
     }

@@ -15,7 +15,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.styra.run.Utils.Null.firstNonNull;
+import static com.styra.run.utils.Null.firstNonNull;
 
 public final class RbacServlet extends StyraRunServlet {
     private final RbacSubRoute[] subRoutes = new RbacSubRoute[]{

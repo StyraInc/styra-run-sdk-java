@@ -4,7 +4,7 @@ import com.styra.run.ApiClient.RequestBuilder;
 import com.styra.run.ApiResponse;
 import com.styra.run.RetryException;
 import com.styra.run.StyraRunException;
-import com.styra.run.Utils;
+import com.styra.run.utils.Futures;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,9 +16,9 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static com.styra.run.Utils.Futures.async;
-import static com.styra.run.Utils.Futures.failedFuture;
-import static com.styra.run.Utils.Url.appendPath;
+import static com.styra.run.utils.Futures.async;
+import static com.styra.run.utils.Futures.failedFuture;
+import static com.styra.run.utils.Url.appendPath;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
 public abstract class GatewaySelector {
@@ -48,7 +48,6 @@ public abstract class GatewaySelector {
                         () -> failedFuture(new StyraRunException("No API request attempts allowed"))));
     }
 
-    // TODO: add logging
     private CompletableFuture<ApiResponse> retry(Function<Gateway, CompletableFuture<ApiResponse>> request,
                                                  GatewaySelectionStrategy strategy,
                                                  Gateway gateway,
@@ -57,6 +56,8 @@ public abstract class GatewaySelector {
         if (gateway == null || attempt > maxAttempts || attempt > strategy.size()) {
             return onTooManyAttempts.get();
         }
+
+        logger.debug("Making request; attempt {}", attempt);
 
         return request.apply(gateway)
                 .thenCompose((response) -> {
@@ -67,7 +68,7 @@ public abstract class GatewaySelector {
                     return completedFuture(response);
                 })
                 .exceptionallyCompose((e) -> {
-                    Throwable unwrapped = Utils.Futures.unwrapCompletionException(e);
+                    Throwable unwrapped = Futures.unwrapException(e);
                     if (unwrapped instanceof RetryException) {
                         return retry(request, strategy, strategy.nextIfMatch(gateway), attempt + 1,
                                 () -> failedFuture(unwrapped.getCause()));
@@ -76,26 +77,33 @@ public abstract class GatewaySelector {
                 });
     }
 
-    protected abstract List<Gateway> fetchGateways();
+    protected abstract List<Gateway> fetchGateways() throws StyraRunException;
 
     private CompletableFuture<GatewaySelectionStrategy> getGatewaySelectionStrategy() {
-        // We fetch gateways synchronously, as there is no point in retrieving them more than once,
-        // and no concurrent work can be done until they're resolved.
-        if (discoveryStrategy == null) {
-            synchronized (gatewaysFetchLock) {
-                if (discoveryStrategy == null) {
-                    logger.trace("Fetching gateways");
-                    List<Gateway> gateways = fetchGateways();
-                    if (gateways.isEmpty()) {
-                        return failedFuture(new StyraRunException("No gateways could be fetched"));
+        return async(() -> {
+            // We block while fetching gateways, as there is no point in retrieving them more than once,
+            // and no concurrent work can be done until they're resolved anyway.
+            if (discoveryStrategy == null) {
+                synchronized (gatewaysFetchLock) {
+                    if (discoveryStrategy == null) {
+                        logger.trace("Fetching gateways");
+                        List<Gateway> gateways;
+                        try {
+                            gateways = fetchGateways();
+                        } catch (Exception e) {
+                            throw new StyraRunException("Failed to fetch gateways", e);
+                        }
+                        if (gateways == null || gateways.isEmpty()) {
+                            throw new StyraRunException("No gateways could be fetched");
+                        }
+                        logger.debug("Gateways: {}", gateways.stream()
+                                .map((g) -> g.getUri().toString())
+                                .collect(Collectors.joining(", ")));
+                        discoveryStrategy = gatewaySelectionStrategyFactory.create(gateways);
                     }
-                    logger.debug("Gateways: {}", gateways.stream()
-                            .map((g) -> g.getUri().toString())
-                            .collect(Collectors.joining(", ")));
-                    discoveryStrategy = gatewaySelectionStrategyFactory.create(gateways);
                 }
             }
-        }
-        return completedFuture(discoveryStrategy);
+            return discoveryStrategy;
+        });
     }
 }

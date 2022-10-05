@@ -1,5 +1,6 @@
 package com.styra.run;
 
+import com.styra.run.utils.Types;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -23,7 +24,7 @@ public final class CookieSessionInputStrategy implements InputTransformer {
         MapInput.Builder<String, Object> inputBuilder = new MapInput.Builder<>();
 
         if (input != null && !input.isEmpty()) {
-            Map<?, ?> inputValue = Utils.Types.safeCast(Map.class, input.getValue());
+            Map<?, ?> inputValue = Types.safeCast(Map.class, input.getValue());
             if (inputValue == null) {
                 // The given input isn't a map, so we can't inject session info into it.
                 return input;

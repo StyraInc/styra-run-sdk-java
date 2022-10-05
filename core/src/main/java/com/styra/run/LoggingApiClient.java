@@ -19,13 +19,21 @@ public class LoggingApiClient implements ApiClient {
     @Override
     public CompletableFuture<ApiResponse> request(Method method, URI uri, Map<String, String> headers, String body) {
         UUID uuid = UUID.randomUUID();
-        logger.trace("API {} '{}'; uuid:{}; headers={}; body='{}'", method, uri, uuid, headers, body);
+        if (logger.isTraceEnabled()) {
+            logger.trace("{} '{}'; uuid:{}; headers={}; body='{}'", method, uri, uuid, headers, body);
+        } else {
+            logger.debug("{} '{}'; uuid:{}", method, uri, uuid);
+        }
         return delegate.request(method, uri, headers, body)
                 .thenApply((response -> logResponse(response, uuid)));
     }
 
     private static ApiResponse logResponse(ApiResponse response, UUID uuid) {
-        logger.trace("API response: uuid={}; response={}", uuid, response);
+        if (logger.isTraceEnabled()) {
+            logger.trace("Response: uuid={}; status={}, body={}", uuid, response.getStatusCode(), response.getBody());
+        } else {
+            logger.debug("Response: uuid={}; status={}", uuid, response.getStatusCode());
+        }
         return response;
     }
 }
