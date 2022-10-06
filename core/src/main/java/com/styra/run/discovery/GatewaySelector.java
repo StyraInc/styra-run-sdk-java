@@ -54,10 +54,11 @@ public abstract class GatewaySelector {
                                                  int attempt,
                                                  Supplier<CompletableFuture<ApiResponse>> onTooManyAttempts) {
         if (gateway == null || attempt > maxAttempts || attempt > strategy.size()) {
+            logger.debug("Too many failed attempts ({}); aborting request", attempt);
             return onTooManyAttempts.get();
         }
 
-        logger.debug("Making request; attempt {}", attempt);
+        logger.trace("Making request; attempt {}", attempt);
 
         return request.apply(gateway)
                 .thenCompose((response) -> {

@@ -1,11 +1,11 @@
-package com.styra.run.utils
+package com.styra.run.test
 
 import com.styra.run.ApiClient
 import com.styra.run.ApiResponse
 
 import java.util.concurrent.CompletableFuture
 
-import static com.styra.run.utils.apiClients.exceptionalResult
+import static com.styra.run.test.apiClients.exceptionalResult
 
 class CountingApiClient implements ApiClient {
     def hitCount = 0

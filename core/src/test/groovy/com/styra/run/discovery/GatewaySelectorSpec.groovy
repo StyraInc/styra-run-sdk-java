@@ -2,16 +2,16 @@ package com.styra.run.discovery
 
 import com.styra.run.RetryException
 import com.styra.run.StyraRunException
-import com.styra.run.utils.CountingApiClient
+import com.styra.run.test.CountingApiClient
 import spock.lang.Specification
 import spock.lang.Unroll
 
 import java.util.concurrent.ExecutionException
 
 import static com.styra.run.ApiClient.Method.GET
-import static com.styra.run.utils.apiClients.exceptionalResult
-import static com.styra.run.utils.apiClients.httpResult
-import static com.styra.run.utils.helpers.gatewaysFrom
+import static com.styra.run.test.apiClients.exceptionalResult
+import static com.styra.run.test.apiClients.httpResult
+import static com.styra.run.test.helpers.gatewaysFrom
 
 class GatewaySelectorSpec extends Specification {
     def "If gateway fetch fails, it will be performed again on subsequent requests"(

@@ -2,7 +2,7 @@ package com.styra.run.discovery
 
 import spock.lang.Specification
 
-import static com.styra.run.utils.helpers.gatewayFrom
+import static com.styra.run.test.helpers.gatewayFrom
 
 class StaticGatewaySelectorSpec extends Specification {
     def "Returned list of gateways is same as what the selector was initialized with"() {

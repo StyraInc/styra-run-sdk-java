@@ -1,14 +1,17 @@
 package com.styra.run.discovery
 
-import com.styra.run.*
-import com.styra.run.utils.CountingApiClient
+import com.styra.run.ApiError
+import com.styra.run.ApiResponse
+import com.styra.run.Json
+import com.styra.run.StyraRunException
+import com.styra.run.StyraRunHttpException
+import com.styra.run.test.CountingApiClient
 import spock.lang.Specification
 import spock.lang.Unroll
 
 import java.util.concurrent.CompletableFuture
 
 import static com.styra.run.ApiClient.Method.GET
-import static org.junit.jupiter.api.Assertions.assertEquals
 
 class ApiGatewaySelectorSpec extends Specification {
     private static JSON = new Json()
@@ -25,8 +28,8 @@ class ApiGatewaySelectorSpec extends Specification {
 
         given: 'a mocked API-client'
         def client = new CountingApiClient(responseSupplier: { method, uri, headers, body ->
-            assertEquals(GET, method)
-            assertEquals(gatewaysUri, uri)
+            assert method == GET
+            assert uri == gatewaysUri
             return CompletableFuture.completedFuture(new ApiResponse(200, JSON.from(responseBody)))
         })
 
@@ -178,9 +181,9 @@ class ApiGatewaySelectorSpec extends Specification {
         def e = thrown(StyraRunException)
         e.message == expectedErrorMessage
         if (exception instanceof StyraRunException) {
-            assertEquals(exception, e)
+            assert e == exception
         } else {
-            assertEquals(exception, e.cause)
+            assert e.cause == exception
         }
 
         where:
@@ -199,7 +202,7 @@ class ApiGatewaySelectorSpec extends Specification {
 
         given: 'a mocked API-client'
         def client = new CountingApiClient(responseSupplier: { method, uri, requestHeaders, body ->
-            assertEquals(headers, requestHeaders)
+            assert requestHeaders == headers
             return CompletableFuture.completedFuture(new ApiResponse(200, JSON.from([result: []])))
         })
 

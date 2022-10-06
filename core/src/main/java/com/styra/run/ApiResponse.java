@@ -10,7 +10,7 @@ public class ApiResponse {
     }
 
     public boolean isSuccessful() {
-        // Not considering 3XX as successful
+        // Not considering 3XX as successful, as these should be handled by the ApiClient, and never surfaced
         return statusCode >= 200 && statusCode < 300;
     }
 

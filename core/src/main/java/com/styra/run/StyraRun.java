@@ -34,6 +34,8 @@ import static com.styra.run.ApiClient.Method.POST;
 import static com.styra.run.ApiClient.Method.PUT;
 import static com.styra.run.utils.Futures.async;
 import static com.styra.run.utils.Null.firstNonNull;
+import static com.styra.run.utils.Null.orThrow;
+import static java.util.Objects.requireNonNull;
 
 public class StyraRun {
     private static final Logger logger = LoggerFactory.getLogger(StyraRun.class);
@@ -66,7 +68,7 @@ public class StyraRun {
     }
 
     public CompletableFuture<Result<?>> query(String path, Input<?> input) {
-        Objects.requireNonNull(path, "path must not be null");
+        requireNonNull(path, "path must not be null");
 
         return CompletableFuture.completedFuture(apiClient.requestBuilder(POST)
                         .headers(getCommonHeaders())
@@ -81,26 +83,21 @@ public class StyraRun {
                 });
     }
 
-    private CompletableFuture<String> serializeBody(SerializableAsMap body) {
-        return async(() -> {
-            try {
-                return getJson().from(Null.map(body,
-                        SerializableAsMap::toMap,
-                        Collections.emptyMap()));
-            } catch (IOException e) {
-                throw new StyraRunException("Input could not be serialized into json", e);
-            }
-        });
-    }
-
-    public BatchQueryBuilder buildBatchQuery() {
+    public BatchQueryBuilder batchQueryBuilder() {
         return new BatchQueryBuilder();
     }
 
-    public CompletableFuture<ListResult> batchQuery(List<Query> items, Input<?> input) {
-        Objects.requireNonNull(items, "items must not be null");
+    public CompletableFuture<ListResult> batchQuery(List<Query> items) {
+        return batchQuery(items, null);
+    }
 
-        List<BatchQuery> chunks = new BatchQuery(items, input)
+    public CompletableFuture<ListResult> batchQuery(List<Query> items, Input<?> globalInput) {
+        requireNonNull(items, "items must not be null");
+        if (items.isEmpty()) {
+            throw new IllegalArgumentException("items must not be empty");
+        }
+
+        List<BatchQuery> chunks = new BatchQuery(items, globalInput)
                 .chunk(batchQueryItemsMax);
 
         List<CompletableFuture<ListResult>> futures = chunks.stream()
@@ -120,7 +117,7 @@ public class StyraRun {
                     return result;
                 })
                 .thenApply((result) -> {
-                    logger.debug("Batch query: items='{}'; input={}; result={}", items, input, result);
+                    logger.debug("Batch query: items='{}'; input={}; result={}", items, globalInput, result);
                     return result;
                 });
     }
@@ -165,7 +162,7 @@ public class StyraRun {
     }
 
     public CompletableFuture<Result<?>> getData(String path, Supplier<?> defaultSupplier) {
-        Objects.requireNonNull(path, "path must not be null");
+        requireNonNull(path, "path must not be null");
 
         return CompletableFuture.completedFuture(apiClient.requestBuilder(GET)
                         .headers(getCommonHeaders()))
@@ -184,8 +181,8 @@ public class StyraRun {
     }
 
     public CompletableFuture<Result<Void>> putData(String path, Object data) {
-        Objects.requireNonNull(path, "path must not be null");
-        Objects.requireNonNull(data, "data must not be null");
+        requireNonNull(path, "path must not be null");
+        requireNonNull(data, "data must not be null");
 
         return CompletableFuture.completedFuture(apiClient.requestBuilder(PUT)
                         .headers(getCommonHeaders())
@@ -201,7 +198,7 @@ public class StyraRun {
     }
 
     public CompletableFuture<Result<Void>> deleteData(String path) {
-        Objects.requireNonNull(path, "path must not be null");
+        requireNonNull(path, "path must not be null");
 
         return CompletableFuture.completedFuture(apiClient.requestBuilder(DELETE)
                         .headers(getCommonHeaders()))
@@ -212,6 +209,18 @@ public class StyraRun {
                     logger.debug("DELETE data: path='{}'; result={}", path, result);
                     return result;
                 });
+    }
+
+    private CompletableFuture<String> serializeBody(SerializableAsMap body) {
+        return async(() -> {
+            try {
+                return getJson().from(Null.map(body,
+                        SerializableAsMap::toMap,
+                        Collections.emptyMap()));
+            } catch (IOException e) {
+                throw new StyraRunException("Input could not be serialized into json", e);
+            }
+        });
     }
 
     private Map<String, ?> handleResponse(ApiResponse response) {
@@ -259,8 +268,12 @@ public class StyraRun {
         private final String path;
         private final Input<?> input;
 
+        public Query(String path) {
+            this(path, null);
+        }
+
         public Query(String path, Input<?> input) {
-            Objects.requireNonNull(path, "path must not be null");
+            requireNonNull(path, "path must not be null");
             this.path = path;
             this.input = input;
         }
@@ -309,7 +322,7 @@ public class StyraRun {
         private final Input<?> input;
 
         public BatchQuery(List<Query> items, Input<?> input) {
-            Objects.requireNonNull(items, "items must not be null");
+            requireNonNull(items, "items must not be null");
 
             this.items = items;
             this.input = input;
@@ -362,23 +375,22 @@ public class StyraRun {
             return this;
         }
 
-        public BatchQueryBuilder addQuery(String path) {
-            return addQuery(path, input);
+        public BatchQueryBuilder query(String path) {
+            return query(path, null);
         }
 
-        public BatchQueryBuilder addQuery(String path, Input<?> input) {
-            Objects.requireNonNull(path, "path must not be null");
+        public BatchQueryBuilder query(String path, Input<?> input) {
+            requireNonNull(path, "path must not be null");
             items.add(new Query(path, input));
             return this;
         }
 
-        public CompletableFuture<ListResult> query() {
+        public CompletableFuture<ListResult> execute() {
             return batchQuery(items, input);
         }
     }
 
     // TODO: configurable API-client
-    // TODO: configurable discovery strategy
     public static final class Builder {
         private final String envUri;
         private final List<String> gateways;
@@ -390,15 +402,15 @@ public class StyraRun {
         private int maxRetryAttempts = 3;
 
         public Builder(String envUri, String token) {
-            this.envUri = Objects.requireNonNull(envUri, "url must not be null");
+            this.envUri = orThrow(envUri, () -> new IllegalArgumentException("url must not be null"));
             this.gateways = null;
-            this.token = Objects.requireNonNull(token, "token must not be null");
+            this.token = orThrow(token, () -> new IllegalArgumentException("token must not be null"));
         }
 
         public Builder(List<String> gateways, String token) {
             this.envUri = null;
-            this.gateways = Objects.requireNonNull(gateways, "gateways must not be null");
-            this.token = Objects.requireNonNull(token, "token must not be null");
+            this.gateways = orThrow(gateways, () -> new IllegalArgumentException("gateways must not be null"));
+            this.token = orThrow(token, () -> new IllegalArgumentException("token must not be null"));
         }
 
         public Builder apiClient(ApiClient apiClient) {

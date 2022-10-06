@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import static com.styra.run.utils.Null.firstNonNull;
 import static java.util.Collections.singletonMap;
 
+// FIXME: cleanup
 public class Result<T> implements SerializableAsMap {
     public static final Result<?> EMPTY_RESULT = new Result<>(null, Collections.emptyMap());
 
@@ -47,6 +48,10 @@ public class Result<T> implements SerializableAsMap {
 
     public T get() {
         return value;
+    }
+
+    public boolean isEmpty() {
+        return value == null;
     }
 
     public Optional<T> getOptional() {

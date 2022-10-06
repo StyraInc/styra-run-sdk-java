@@ -49,4 +49,11 @@ public final class Null {
             consumer.accept(value);
         }
     }
+
+    public static <T, E extends Exception> T orThrow(T value, Supplier<E> exceptionSupplier) throws E {
+        if (value != null) {
+            return value;
+        }
+        throw exceptionSupplier.get();
+    }
 }
