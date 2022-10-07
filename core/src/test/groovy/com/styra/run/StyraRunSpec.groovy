@@ -11,7 +11,7 @@ import static com.styra.run.ApiClient.Method.DELETE
 import static com.styra.run.ApiClient.Method.GET
 import static com.styra.run.ApiClient.Method.POST
 import static com.styra.run.ApiClient.Method.PUT
-import static com.styra.run.StyraRun.Query
+import static BatchQuery.Item
 import static com.styra.run.test.apiClients.httpResult
 import static java.util.concurrent.CompletableFuture.completedFuture
 
@@ -246,7 +246,7 @@ class StyraRunSpec extends Specification {
         StyraRun.builder(DEFAULT_GATEWAYS, 'token')
                 .apiClient(client)
                 .build()
-                .batchQuery([])
+                .batchQuery([] as List<Item>)
                 .get()
 
         then: 'an exception was thrown'
@@ -271,7 +271,7 @@ class StyraRunSpec extends Specification {
         def result = StyraRun.builder(DEFAULT_GATEWAYS, 'token')
                 .apiClient(client)
                 .build()
-                .batchQuery(query as List<Query>)
+                .batchQuery(query as List<Item>)
                 .get()
 
         then: 'the result is as expected'
@@ -282,32 +282,33 @@ class StyraRunSpec extends Specification {
         client.hitCount == 1
 
         where:
-        query                              | responseBody                 || expectedRequestBody                  | expectedResult
-        [new Query('/')]                   | [result: [[:]]]              || [items: [[path: '/']]]               | new ListResult([Result.empty()])
-        [new Query('/')]                   | [result: [[result: true]]]   || [items: [[path: '/']]]               | new ListResult([new Result(true)])
-        [new Query('/one'),
-         new Query('/two')]                | [result: [[result: true],
-                                                       [result: false]],] || [items: [[path: '/one'],
-                                                                                      [path: '/two']]]            | new ListResult([new Result(true),
-                                                                                                                                    new Result(false)])
+        query                    | responseBody                 || expectedRequestBody                  | expectedResult
+        [new Item('/')]          | [result: [[:]]]              || [items: [[path: '/']]]               | new ListResult([Result.empty()])
+        [new Item('/')]          | [result: [[result: true]]]   || [items: [[path: '/']]]               | new ListResult([new Result(true)])
+        [new Item('/one'),
+         new Item('/two')]       | [result: [[result: true],
+                                             [result: false]],] || [items: [[path: '/one'],
+                                                                            [path: '/two']]]            | new ListResult([new Result(true),
+                                                                                                                          new Result(false)])
         // query with input
-        [new Query('/one'),
-         new Query('/two', new Input(42))] | [result: [[result: true],
-                                                       [result: false]],] || [items: [[path: '/one'],
-                                                                                      [path: '/two', input: 42]]] | new ListResult([new Result(true),
-                                                                                                                                    new Result(false)])
+        [new Item('/one'),
+         new Item('/two',
+                 new Input(42))] | [result: [[result: true],
+                                             [result: false]],] || [items: [[path: '/one'],
+                                                                            [path: '/two', input: 42]]] | new ListResult([new Result(true),
+                                                                                                                          new Result(false)])
         // response with attributes
-        [new Query('/one'),
-         new Query('/two')]                | [result: [[result: true, foo: 'bar'],
-                                                       [result: false]],] || [items: [[path: '/one'],
-                                                                                      [path: '/two']]]            | new ListResult([new Result(true, [foo: 'bar']),
-                                                                                                                                    new Result(false)])
+        [new Item('/one'),
+         new Item('/two')]       | [result: [[result: true, foo: 'bar'],
+                                             [result: false]],] || [items: [[path: '/one'],
+                                                                            [path: '/two']]]            | new ListResult([new Result(true, [foo: 'bar']),
+                                                                                                                          new Result(false)])
         // response with error
-        [new Query('/one'),
-         new Query('/two')]                | [result: [[error: [code: 'oopsie', message: 'daisy']],
-                                                       [result: false]],] || [items: [[path: '/one'],
-                                                                                      [path: '/two']]]            | new ListResult([Result.empty([error: [code: 'oopsie', message: 'daisy']]),
-                                                                                                                                    new Result(false)])
+        [new Item('/one'),
+         new Item('/two')]       | [result: [[error: [code: 'oopsie', message: 'daisy']],
+                                             [result: false]],] || [items: [[path: '/one'],
+                                                                            [path: '/two']]]            | new ListResult([Result.empty([error: [code: 'oopsie', message: 'daisy']]),
+                                                                                                                          new Result(false)])
     }
 
     def "Batch queries can be made using a builder"() {

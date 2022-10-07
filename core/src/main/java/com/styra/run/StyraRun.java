@@ -17,7 +17,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -71,9 +70,9 @@ public class StyraRun {
         requireNonNull(path, "path must not be null");
 
         return completedFuture(apiClient.requestBuilder(POST)
-                        .headers(getCommonHeaders())
-                        .jsonContentType())
-                .thenCombine(serializeBody(input), RequestBuilder::body)
+                .headers(getCommonHeaders())
+                .jsonContentType())
+                .thenCombine(serializeBody(new InputContainer(input)), RequestBuilder::body)
                 .thenCompose((request) -> gatewaySelector.retry(request, "data", path))
                 .thenApply(this::handleResponse)
                 .thenApply(Result::fromResponseMap)
@@ -87,11 +86,11 @@ public class StyraRun {
         return new BatchQueryBuilder();
     }
 
-    public CompletableFuture<ListResult> batchQuery(List<Query> items) {
+    public CompletableFuture<ListResult> batchQuery(List<BatchQuery.Item> items) {
         return batchQuery(items, null);
     }
 
-    public CompletableFuture<ListResult> batchQuery(List<Query> items, Input<?> globalInput) {
+    public CompletableFuture<ListResult> batchQuery(List<BatchQuery.Item> items, Input<?> globalInput) {
         requireNonNull(items, "items must not be null");
         if (items.isEmpty()) {
             throw new IllegalArgumentException("items must not be empty");
@@ -124,8 +123,8 @@ public class StyraRun {
 
     private CompletableFuture<ListResult> batchQuery(BatchQuery query) {
         return completedFuture(apiClient.requestBuilder(POST)
-                        .headers(getCommonHeaders())
-                        .jsonContentType())
+                .headers(getCommonHeaders())
+                .jsonContentType())
                 .thenCombine(serializeBody(query), RequestBuilder::body)
                 .thenCompose(request -> gatewaySelector.retry(request, "data_batch"))
                 .thenApply(this::handleResponse)
@@ -165,7 +164,7 @@ public class StyraRun {
         requireNonNull(path, "path must not be null");
 
         return completedFuture(apiClient.requestBuilder(GET)
-                        .headers(getCommonHeaders()))
+                .headers(getCommonHeaders()))
                 .thenCompose(request -> gatewaySelector.retry(request, "data", path))
                 .thenApply((response) -> {
                     if (response.isNotFoundStatus()) {
@@ -185,8 +184,8 @@ public class StyraRun {
         requireNonNull(data, "data must not be null");
 
         return completedFuture(apiClient.requestBuilder(PUT)
-                        .headers(getCommonHeaders())
-                        .jsonContentType())
+                .headers(getCommonHeaders())
+                .jsonContentType())
                 .thenCombine(toJson(data), RequestBuilder::body)
                 .thenCompose(request -> gatewaySelector.retry(request, "data", path))
                 .thenApply(this::handleResponse)
@@ -201,7 +200,7 @@ public class StyraRun {
         requireNonNull(path, "path must not be null");
 
         return completedFuture(apiClient.requestBuilder(DELETE)
-                        .headers(getCommonHeaders()))
+                .headers(getCommonHeaders()))
                 .thenCompose(request -> gatewaySelector.retry(request, "data", path))
                 .thenApply(this::handleResponse)
                 .thenApply(Result::empty)
@@ -262,107 +261,8 @@ public class StyraRun {
         return Collections.singletonMap("Authorization", String.format("Bearer %s", token));
     }
 
-    public static class Query {
-        private final String path;
-        private final Input<?> input;
-
-        public Query(String path) {
-            this(path, null);
-        }
-
-        public Query(String path, Input<?> input) {
-            requireNonNull(path, "path must not be null");
-            this.path = path;
-            this.input = input;
-        }
-
-        public static Query fromMap(Map<?, ?> map) {
-            String path = (String) map.get("path");
-            Input<?> input = Null.map(map.get("input"), Input::new);
-            return new Query(path, input);
-        }
-
-        public Input<?> getInput() {
-            return input;
-        }
-
-        public String getPath() {
-            return path;
-        }
-
-        @Override
-        public String toString() {
-            StringBuilder sb = new StringBuilder();
-            sb.append("Query{")
-                    .append("path='").append(path).append('\'');
-
-            if (input != null) {
-                sb.append(", input=")
-                        .append(input);
-            }
-
-            sb.append('}');
-            return sb.toString();
-        }
-
-        public Map<String, ?> toMap() {
-            Map<String, Object> map = new HashMap<>();
-            map.put("path", path);
-            if (input != null) {
-                map.putAll(input.toMap());
-            }
-            return map;
-        }
-    }
-
-    static class BatchQuery implements SerializableAsMap {
-        private final List<Query> items;
-        private final Input<?> input;
-
-        public BatchQuery(List<Query> items, Input<?> input) {
-            requireNonNull(items, "items must not be null");
-
-            this.items = items;
-            this.input = input;
-        }
-
-        public static BatchQuery fromMap(Map<?, ?> map) {
-            List<Query> items = ((List<?>) map.get("items")).stream()
-                    .map((item) -> Query.fromMap((Map<?, ?>) item))
-                    .collect(Collectors.toList());
-            Input<?> input = Null.map(map.get("input"), Input::new);
-            return new BatchQuery(items, input);
-        }
-
-        public Input<?> getInput() {
-            return input;
-        }
-
-        public List<Query> getItems() {
-            return items;
-        }
-
-        List<BatchQuery> chunk(int chunkSize) {
-            return com.styra.run.utils.Collections.chunk(items, chunkSize).stream()
-                    .map((items) -> new BatchQuery(items, input))
-                    .collect(Collectors.toList());
-        }
-
-        @Override
-        public Map<String, ?> toMap() {
-            Map<String, Object> map = new HashMap<>();
-            map.put("items", items.stream()
-                    .map(Query::toMap)
-                    .collect(Collectors.toList()));
-            if (input != null) {
-                map.putAll(input.toMap());
-            }
-            return map;
-        }
-    }
-
     public class BatchQueryBuilder {
-        private final List<Query> items = new LinkedList<>();
+        private final List<BatchQuery.Item> items = new LinkedList<>();
         private Input<?> input;
 
         private BatchQueryBuilder() {
@@ -379,7 +279,7 @@ public class StyraRun {
 
         public BatchQueryBuilder query(String path, Input<?> input) {
             requireNonNull(path, "path must not be null");
-            items.add(new Query(path, input));
+            items.add(new BatchQuery.Item(path, input));
             return this;
         }
 

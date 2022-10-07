@@ -1,6 +1,5 @@
 package com.styra.run;
 
-import com.styra.run.StyraRun.BatchQuery;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -30,20 +29,20 @@ public final class ProxyServlet extends StyraRunServlet {
         InputTransformer inputTransformer = getInputTransformer();
 
         handleAsync(request, response, (body, out, async) -> {
-                    BatchQuery query = BatchQuery.fromMap(json.toMap(body));
-                    List<StyraRun.Query> items = query.getItems().stream()
-                            .map((q) -> new StyraRun.Query(q.getPath(),
-                                    inputTransformer.transform(q.getInput(), q.getPath(), request)))
-                            .collect(Collectors.toList());
-                    Input<?> globalInput = inputTransformer.transform(query.getInput(), null, request);
+            BatchQuery query = BatchQuery.fromMap(json.toMap(body));
+            List<BatchQuery.Item> items = query.getItems().stream()
+                    .map((q) -> new BatchQuery.Item(q.getPath(),
+                            inputTransformer.transform(q.getInput(), q.getPath(), request)))
+                    .collect(Collectors.toList());
+            Input<?> globalInput = inputTransformer.transform(query.getInput(), null, request);
 
-                    styraRun.batchQuery(items, globalInput)
-                            .thenAccept((result) ->
-                                    writeOkJsonResponse(result.withoutAttributes().toMap(), response, out, async))
-                            .exceptionally((e) -> {
-                                handleError("Batch query failed", e, async, response);
-                                return null;
-                            });
-                });
+            styraRun.batchQuery(items, globalInput)
+                    .thenAccept((result) ->
+                            writeOkJsonResponse(result.withoutAttributes().toMap(), response, out, async))
+                    .exceptionally((e) -> {
+                        handleError("Batch query failed", e, async, response);
+                        return null;
+                    });
+        });
     }
 }
