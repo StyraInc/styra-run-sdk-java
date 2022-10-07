@@ -9,6 +9,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
+import static com.styra.run.utils.Futures.async;
 import static com.styra.run.utils.Types.castList;
 
 public class RbacManager {
@@ -28,16 +29,15 @@ public class RbacManager {
         return styraRun.check(AUTHZ_PATH, authzInput)
                 .thenApply(this::assertAllowed)
                 .thenCompose((Void) -> styraRun.query(ROLES_PATH))
-                .thenApply((result) -> result.asListOf(String.class));
+                .thenApply(async((result) -> result.getListOf(String.class)));
     }
 
     public CompletableFuture<List<UserBinding>> listUserBindings(AuthorizationInput authzInput) {
         return styraRun.check(AUTHZ_PATH, authzInput)
                 .thenApply(this::assertAllowed)
                 .thenCompose((Void) -> styraRun.getData(String.format(USER_BINDINGS_FORMAT, authzInput.getTenant())))
-                .thenApply((result) -> {
-                    try {
-                        return result.asMap().entrySet().stream()
+                .thenApply(async((result) ->
+                        result.getMapOf(List.class).entrySet().stream()
                                 .map((entry) -> {
                                     User user = new User(entry.getKey().toString());
                                     List<Role> roles = castList(String.class, (List<?>) entry.getValue())
@@ -46,12 +46,7 @@ public class RbacManager {
                                             .collect(Collectors.toList());
                                     return new UserBinding(user, roles);
                                 })
-                                .collect(Collectors.toList());
-                    } catch (Exception e) {
-                        throw new CompletionException(
-                                new StyraRunException("Failed to parse user bindings", e));
-                    }
-                });
+                                .collect(Collectors.toList()), (e) -> new StyraRunException("Failed to parse user bindings", e)));
     }
 
     // TODO: Add getUserBindings(List<User>, AuthorizationInput) function
@@ -62,7 +57,7 @@ public class RbacManager {
                 .thenCompose((Void) -> styraRun.getData(String.format(USER_BINDING_FORMAT, authzInput.getTenant(), user.getId())))
                 .thenApply((result) -> {
                     try {
-                        List<Role> roles = result.asListOf(String.class).stream()
+                        List<Role> roles = result.getListOf(String.class).stream()
                                 .map(Role::new)
                                 .collect(Collectors.toList());
                         return new UserBinding(user, roles);

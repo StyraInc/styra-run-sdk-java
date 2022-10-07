@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 
 import static com.styra.run.utils.Futures.async;
 import static com.styra.run.utils.Futures.failedFuture;
+import static com.styra.run.utils.Futures.startAsync;
 import static com.styra.run.utils.Url.appendPath;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
@@ -37,9 +38,9 @@ public abstract class GatewaySelector {
     }
 
     public CompletableFuture<ApiResponse> retry(RequestBuilder request, String... path) {
-        return retry(gateway -> async(() -> appendPath(gateway.getUri(), path))
-                .thenApply(request::uri)
-                .thenCompose(RequestBuilder::request));
+        return retry(async(gateway ->
+                request.uri(appendPath(gateway.getUri(), path))
+                        .request()));
     }
 
     private CompletableFuture<ApiResponse> retry(Function<Gateway, CompletableFuture<ApiResponse>> request) {
@@ -81,7 +82,7 @@ public abstract class GatewaySelector {
     protected abstract List<Gateway> fetchGateways() throws StyraRunException;
 
     private CompletableFuture<GatewaySelectionStrategy> getGatewaySelectionStrategy() {
-        return async(() -> {
+        return startAsync(() -> {
             // We block while fetching gateways, as there is no point in retrieving them more than once,
             // and no concurrent work can be done until they're resolved anyway.
             if (discoveryStrategy == null) {

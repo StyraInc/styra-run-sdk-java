@@ -1,14 +1,14 @@
 package com.styra.run;
 
 import com.styra.run.ApiClient.RequestBuilder;
-import com.styra.run.utils.Futures;
-import com.styra.run.utils.Null;
 import com.styra.run.discovery.ApiGatewaySelector;
 import com.styra.run.discovery.Gateway;
 import com.styra.run.discovery.GatewaySelectionStrategy;
 import com.styra.run.discovery.GatewaySelector;
 import com.styra.run.discovery.SimpleGatewaySelectionStrategy;
 import com.styra.run.discovery.StaticGatewaySelector;
+import com.styra.run.utils.Futures;
+import com.styra.run.utils.Null;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Predicate;
@@ -32,15 +31,16 @@ import static com.styra.run.ApiClient.Method.DELETE;
 import static com.styra.run.ApiClient.Method.GET;
 import static com.styra.run.ApiClient.Method.POST;
 import static com.styra.run.ApiClient.Method.PUT;
-import static com.styra.run.utils.Futures.async;
+import static com.styra.run.utils.Futures.failedFuture;
 import static com.styra.run.utils.Null.firstNonNull;
 import static com.styra.run.utils.Null.orThrow;
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.CompletableFuture.completedFuture;
 
 public class StyraRun {
     private static final Logger logger = LoggerFactory.getLogger(StyraRun.class);
 
-    private static final Predicate<Result<?>> DEFAULT_CHECK_PREDICATE = (result) -> result.asSafeBoolean(false);
+    private static final Predicate<Result<?>> DEFAULT_CHECK_PREDICATE = (result) -> result.getSafe(Boolean.class, false);
 
     private final ApiClient apiClient;
     private final Json json;
@@ -70,7 +70,7 @@ public class StyraRun {
     public CompletableFuture<Result<?>> query(String path, Input<?> input) {
         requireNonNull(path, "path must not be null");
 
-        return CompletableFuture.completedFuture(apiClient.requestBuilder(POST)
+        return completedFuture(apiClient.requestBuilder(POST)
                         .headers(getCommonHeaders())
                         .jsonContentType())
                 .thenCombine(serializeBody(input), RequestBuilder::body)
@@ -123,7 +123,7 @@ public class StyraRun {
     }
 
     private CompletableFuture<ListResult> batchQuery(BatchQuery query) {
-        return CompletableFuture.completedFuture(apiClient.requestBuilder(POST)
+        return completedFuture(apiClient.requestBuilder(POST)
                         .headers(getCommonHeaders())
                         .jsonContentType())
                 .thenCombine(serializeBody(query), RequestBuilder::body)
@@ -164,7 +164,7 @@ public class StyraRun {
     public CompletableFuture<Result<?>> getData(String path, Supplier<?> defaultSupplier) {
         requireNonNull(path, "path must not be null");
 
-        return CompletableFuture.completedFuture(apiClient.requestBuilder(GET)
+        return completedFuture(apiClient.requestBuilder(GET)
                         .headers(getCommonHeaders()))
                 .thenCompose(request -> gatewaySelector.retry(request, "data", path))
                 .thenApply((response) -> {
@@ -184,7 +184,7 @@ public class StyraRun {
         requireNonNull(path, "path must not be null");
         requireNonNull(data, "data must not be null");
 
-        return CompletableFuture.completedFuture(apiClient.requestBuilder(PUT)
+        return completedFuture(apiClient.requestBuilder(PUT)
                         .headers(getCommonHeaders())
                         .jsonContentType())
                 .thenCombine(toJson(data), RequestBuilder::body)
@@ -200,7 +200,7 @@ public class StyraRun {
     public CompletableFuture<Result<Void>> deleteData(String path) {
         requireNonNull(path, "path must not be null");
 
-        return CompletableFuture.completedFuture(apiClient.requestBuilder(DELETE)
+        return completedFuture(apiClient.requestBuilder(DELETE)
                         .headers(getCommonHeaders()))
                 .thenCompose(request -> gatewaySelector.retry(request, "data", path))
                 .thenApply(this::handleResponse)
@@ -212,15 +212,13 @@ public class StyraRun {
     }
 
     private CompletableFuture<String> serializeBody(SerializableAsMap body) {
-        return async(() -> {
-            try {
-                return getJson().from(Null.map(body,
-                        SerializableAsMap::toMap,
-                        Collections.emptyMap()));
-            } catch (IOException e) {
-                throw new StyraRunException("Input could not be serialized into json", e);
-            }
-        });
+        try {
+            return completedFuture(getJson().from(Null.map(body,
+                    SerializableAsMap::toMap,
+                    Collections.emptyMap())));
+        } catch (IOException e) {
+            return failedFuture(new StyraRunException("Input could not be serialized into json", e));
+        }
     }
 
     private Map<String, ?> handleResponse(ApiResponse response) {

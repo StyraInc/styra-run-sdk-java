@@ -1,7 +1,9 @@
 package com.styra.run.utils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 public final class Lambdas {
@@ -54,6 +56,14 @@ public final class Lambdas {
             List<T> resolved = new ArrayList<>(list.size());
             for (CheckedValue<T, E> t : list) {
                 resolved.add(t.get());
+            }
+            return resolved;
+        }
+
+        public static <K, V, E extends Exception> Map<K, V> unwrapOrThrow(Map<K, CheckedValue<V, E>> map) throws E {
+            Map<K, V> resolved = new HashMap<>(map.size());
+            for (Map.Entry<K, CheckedValue<V, E>> entry : map.entrySet()) {
+                resolved.put(entry.getKey(), entry.getValue().get());
             }
             return resolved;
         }

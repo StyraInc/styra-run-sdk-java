@@ -69,7 +69,7 @@ public final class ApiGatewaySelector extends GatewaySelector {
         Result<?> result = Result.fromResponseMap(json.toOptionalMap(response.getBody())
                 .orElseThrow(() -> new StyraRunException("Invalid response JSON")));
 
-        return result.asListOf(Map.class)
+        return result.getListOf(Map.class)
                 .stream()
                 .map(tryWrap(Gateway::fromResponseMap))
                 .collect(Collectors.toList())
