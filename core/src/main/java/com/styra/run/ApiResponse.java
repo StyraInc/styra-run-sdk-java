@@ -1,6 +1,7 @@
 package com.styra.run;
 
-public class ApiResponse {
+// TODO: Add headers?
+public final class ApiResponse {
     private final int statusCode;
     private final String body;
 

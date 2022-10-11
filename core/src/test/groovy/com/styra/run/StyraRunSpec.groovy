@@ -25,28 +25,28 @@ class StyraRunSpec extends Specification {
         StyraRun.builder(null as String, 'my-token')
 
         then: 'an exception is thrown'
-        def e1 = thrown(IllegalArgumentException)
+        def e1 = thrown(NullPointerException)
         e1.message == 'url must not be null'
 
         when: 'initialized with a null gateway URL list'
         StyraRun.builder(null as List<String>, 'my-token')
 
         then: 'an exception is thrown'
-        def e2 = thrown(IllegalArgumentException)
+        def e2 = thrown(NullPointerException)
         e2.message == 'gateways must not be null'
 
         when: 'initialized with env URL and a null token'
         StyraRun.builder('https://localhost', null)
 
         then: 'an exception is thrown'
-        def e3 = thrown(IllegalArgumentException)
+        def e3 = thrown(NullPointerException)
         e3.message == 'token must not be null'
 
         when: 'initialized with gateways and a null token'
         StyraRun.builder(['https://localhost'], null)
 
         then: 'an exception is thrown'
-        def e4 = thrown(IllegalArgumentException)
+        def e4 = thrown(NullPointerException)
         e4.message == 'token must not be null'
 
         when: 'built with an invalid env URL'
@@ -76,7 +76,7 @@ class StyraRunSpec extends Specification {
 
         when: 'the SDK is used'
         StyraRun.builder(DEFAULT_GATEWAYS, token)
-                .apiClient(client)
+                .apiClientFactory({_ -> client })
                 .build()
                 .query('/')
                 .get()
@@ -102,7 +102,7 @@ class StyraRunSpec extends Specification {
 
         when: 'the SDK is used'
         StyraRun.builder(DEFAULT_GATEWAYS, 'token')
-                .apiClient(client)
+                .apiClientFactory({_ -> client })
                 .build()
                 .query(path)
                 .get()
@@ -133,7 +133,7 @@ class StyraRunSpec extends Specification {
 
         when: 'the SDK is used'
         StyraRun.builder(DEFAULT_GATEWAYS, 'token')
-                .apiClient(client)
+                .apiClientFactory({_ -> client })
                 .build()
                 .query('/', new Input<>(input as Object))
                 .get()
@@ -169,7 +169,7 @@ class StyraRunSpec extends Specification {
 
         when: 'the SDK is used'
         StyraRun.builder(DEFAULT_GATEWAYS, 'token')
-                .apiClient(client)
+                .apiClientFactory({_ -> client })
                 .build()
                 .query('/')
                 .get()
@@ -209,7 +209,7 @@ class StyraRunSpec extends Specification {
 
         when: 'the SDK is used'
         def result = StyraRun.builder(DEFAULT_GATEWAYS, 'token')
-                .apiClient(client)
+                .apiClientFactory({_ -> client })
                 .build()
                 .query('/')
                 .get()
@@ -244,7 +244,7 @@ class StyraRunSpec extends Specification {
 
         when: 'the SDK is used'
         StyraRun.builder(DEFAULT_GATEWAYS, 'token')
-                .apiClient(client)
+                .apiClientFactory({_ -> client })
                 .build()
                 .batchQuery([] as List<Item>)
                 .get()
@@ -269,7 +269,7 @@ class StyraRunSpec extends Specification {
 
         when: 'the SDK is used'
         def result = StyraRun.builder(DEFAULT_GATEWAYS, 'token')
-                .apiClient(client)
+                .apiClientFactory({_ -> client })
                 .build()
                 .batchQuery(query as List<Item>)
                 .get()
@@ -337,7 +337,7 @@ class StyraRunSpec extends Specification {
 
         when: 'a batch query builder is used'
         def response = StyraRun.builder(DEFAULT_GATEWAYS, 'token')
-                .apiClient(client)
+                .apiClientFactory({_ -> client })
                 .build()
                 .batchQueryBuilder()
                 .query('/my/path')
@@ -369,7 +369,7 @@ class StyraRunSpec extends Specification {
 
         when: 'the SDK is used'
         def decision = StyraRun.builder(DEFAULT_GATEWAYS, 'token')
-                .apiClient(client)
+                .apiClientFactory({_ -> client })
                 .build()
                 .check('/')
                 .get()
@@ -398,7 +398,7 @@ class StyraRunSpec extends Specification {
 
         when: 'the SDK is used'
         def decision = StyraRun.builder(DEFAULT_GATEWAYS, 'token')
-                .apiClient(client)
+                .apiClientFactory({_ -> client })
                 .build()
                 .check('/', predicate)
                 .get()
@@ -430,7 +430,7 @@ class StyraRunSpec extends Specification {
 
         when: 'the SDK is used'
         def result = StyraRun.builder(DEFAULT_GATEWAYS, 'token')
-                .apiClient(client)
+                .apiClientFactory({_ -> client })
                 .build()
                 .getData('/')
                 .get()
@@ -470,7 +470,7 @@ class StyraRunSpec extends Specification {
 
         when: 'the SDK is used'
         def result = StyraRun.builder(DEFAULT_GATEWAYS, 'token')
-                .apiClient(client)
+                .apiClientFactory({_ -> client })
                 .build()
                 .putData('/', value)
                 .get()
@@ -507,7 +507,7 @@ class StyraRunSpec extends Specification {
 
         when: 'the SDK is used'
         def result = StyraRun.builder(DEFAULT_GATEWAYS, 'token')
-                .apiClient(client)
+                .apiClientFactory({_ -> client })
                 .build()
                 .deleteData('/')
                 .get()

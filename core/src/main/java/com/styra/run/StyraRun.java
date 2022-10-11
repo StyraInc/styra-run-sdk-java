@@ -7,14 +7,18 @@ import com.styra.run.discovery.GatewaySelectionStrategy;
 import com.styra.run.discovery.GatewaySelector;
 import com.styra.run.discovery.SimpleGatewaySelectionStrategy;
 import com.styra.run.discovery.StaticGatewaySelector;
+import com.styra.run.spi.ApiClientFactory;
 import com.styra.run.utils.Futures;
 import com.styra.run.utils.Null;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -60,6 +64,10 @@ public class StyraRun {
 
     Json getJson() {
         return json;
+    }
+
+    ApiClient getApiClient() {
+        return apiClient;
     }
 
     public CompletableFuture<Result<?>> query(String path) {
@@ -293,31 +301,36 @@ public class StyraRun {
         private final String envUri;
         private final List<String> gateways;
         private final String token;
-        private ApiClient apiClient;
+        private ApiClientFactory apiClientFactory;
         private GatewaySelectionStrategy.Factory gatewaySelectionStrategyFactory = new SimpleGatewaySelectionStrategy.Factory();
         private Json json;
         private int batchQueryItemsMax = 20;
         private int maxRetryAttempts = 3;
+        private SSLContext sslContext;
+        private Duration connectionTimeout = Duration.ofSeconds(1);
+        private Duration requestTimeout = Duration.ofSeconds(3);
+        private String userAgent = String.format("Styra Run Java Client (%s)",
+                firstNonNull(getClass().getPackage().getImplementationVersion(), "DEVELOPMENT"));
 
         public Builder(String envUri, String token) {
-            this.envUri = orThrow(envUri, () -> new IllegalArgumentException("url must not be null"));
+            this.envUri = orThrow(envUri, "url must not be null");
             this.gateways = null;
-            this.token = orThrow(token, () -> new IllegalArgumentException("token must not be null"));
+            this.token = orThrow(token, "token must not be null");
         }
 
         public Builder(List<String> gateways, String token) {
             this.envUri = null;
-            this.gateways = orThrow(gateways, () -> new IllegalArgumentException("gateways must not be null"));
-            this.token = orThrow(token, () -> new IllegalArgumentException("token must not be null"));
+            this.gateways = orThrow(gateways, "gateways must not be null");
+            this.token = orThrow(token, "token must not be null");
         }
 
-        public Builder apiClient(ApiClient apiClient) {
-            this.apiClient = apiClient;
+        public Builder apiClientFactory(ApiClientFactory factory) {
+            this.apiClientFactory = orThrow(factory, "factory must not be null");
             return this;
         }
 
         public Builder json(Json json) {
-            this.json = json;
+            this.json = orThrow(json, "json must not be null");
             return this;
         }
 
@@ -338,13 +351,49 @@ public class StyraRun {
         }
 
         public Builder gatewaySelectionStrategy(GatewaySelectionStrategy.Factory factory) {
-            this.gatewaySelectionStrategyFactory = factory;
+            this.gatewaySelectionStrategyFactory = orThrow(factory, "factory must not be null");
             return this;
         }
 
+        public Builder sslContext(SSLContext sslContext) {
+            this.sslContext = orThrow(sslContext, "sslContext must not be null");
+            return this;
+        }
+
+        public Builder connectionTimeout(Duration timeout) {
+            this.connectionTimeout = orThrow(timeout, "timeout must not be null");
+            return this;
+        }
+
+        public Builder requestTimeout(Duration timeout) {
+            this.requestTimeout = orThrow(timeout, "timeout must not be null");
+            return this;
+        }
+
+        public Builder userAgent(String userAgent) {
+            this.userAgent = orThrow(userAgent, "userAgent must not be null");
+            return this;
+        }
+
+        // TODO: Throw StyraRunException
         public StyraRun build() {
-            ApiClient apiClient = new LoggingApiClient(firstNonNull(
-                    () -> this.apiClient, ApiClientLoader.loadDefaultClient()::create));
+            SSLContext sslContext;
+            if (this.sslContext != null) {
+                sslContext = this.sslContext;
+            } else {
+                try {
+                    sslContext = SSLContext.getDefault();
+                } catch (NoSuchAlgorithmException e) {
+                    throw new IllegalStateException("Failed to get default SSL Context", e);
+                }
+            }
+            ApiClient.Config clientConfig = new ApiClient.Config(sslContext, connectionTimeout, requestTimeout, userAgent);
+            ApiClient apiClient;
+            if (apiClientFactory != null) {
+                apiClient = apiClientFactory.create(clientConfig);
+            } else {
+                apiClient = ApiClientLoader.loadDefaultClient().create(clientConfig);
+            }
 
             Json json = firstNonNull(
                     () -> this.json, Json::new);

@@ -50,6 +50,10 @@ public final class Null {
         }
     }
 
+    public static <T, E extends Exception> T orThrow(T value, String message) throws E {
+        return orThrow(value, () -> new NullPointerException(message));
+    }
+
     public static <T, E extends Exception> T orThrow(T value, Supplier<E> exceptionSupplier) throws E {
         if (value != null) {
             return value;
