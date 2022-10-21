@@ -140,7 +140,7 @@ class DefaultApiClientSpec extends Specification {
         waitOrTimeout(responseFuture::isDone, timeout(millis(connectionTimeout.toMillis() + 1_000)))
 
         then: 'the timeout happened within reasonable bounds'
-        assertDivergence(between(start, now()), connectionTimeout)
+        assertDivergence(between(start, now()), connectionTimeout, Duration.ofMillis(200))
 
         when: 'the response is retrieved'
         responseFuture.get()
