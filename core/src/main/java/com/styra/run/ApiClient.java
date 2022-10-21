@@ -9,6 +9,20 @@ import java.util.concurrent.CompletableFuture;
 
 public interface ApiClient extends AutoCloseable {
     // TODO: package request params into ApiRequest object?
+
+    /**
+     * Performs a RESTful request to the Styra Run API.
+     *
+     * When a connection can't be established, the returned {@link CompletableFuture} must be
+     * completed exceptionally with a {@link RetryException}, encapsulating an exception describing
+     * the error.
+     *
+     * @param method the {@link Method} of the request to be executed
+     * @param uri the {@link URI} of the request to be executed
+     * @param headers the headers of the request to be executed
+     * @param body the {@link String} body of the request to be executed, or <code>null</code> if none should be sent
+     * @return a {@link CompletableFuture} resolving to an {@link ApiResponse}
+     */
     CompletableFuture<ApiResponse> request(Method method, URI uri, Map<String, String> headers, String body);
 
     default RequestBuilder requestBuilder(Method method) {

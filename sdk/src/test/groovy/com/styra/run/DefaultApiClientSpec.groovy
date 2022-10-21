@@ -22,6 +22,7 @@ import java.time.Duration
 import java.util.concurrent.ExecutionException
 
 import static com.google.code.tempusfugit.temporal.Duration.millis
+import static com.google.code.tempusfugit.temporal.Duration.seconds
 import static com.google.code.tempusfugit.temporal.Timeout.timeout
 import static com.google.code.tempusfugit.temporal.WaitFor.waitOrTimeout
 import static com.styra.run.ApiClient.Method.DELETE
@@ -125,7 +126,7 @@ class DefaultApiClientSpec extends Specification {
         // a server socket with a backlog of one
         def serverSocket = new ServerSocket(0, 1)
         // fill up the backlog so the API client can't connect
-        new Socket().connect(serverSocket.getLocalSocketAddress())
+        new Socket().connect(serverSocket.localSocketAddress)
 
         def uri = URI.create("http://localhost:${serverSocket.localPort}")
 
@@ -187,7 +188,9 @@ class DefaultApiClientSpec extends Specification {
 
         then: 'we get a timeout exception'
         def e = thrown(ExecutionException)
-        e.cause instanceof HttpTimeoutException
+        e.cause instanceof RetryException
+        e.cause.cause instanceof HttpTimeoutException
+        e.cause.cause.message == 'request timed out'
 
         cleanup:
         mockServer.shutdown()
@@ -198,6 +201,33 @@ class DefaultApiClientSpec extends Specification {
                 Duration.ofSeconds(1),
                 Duration.ofSeconds(3)
         ]
+    }
+
+    @Unroll
+    def "Non-existent host results in RetryException"() {
+        given: "a URI that doesn't correspond with a server listener"
+        // a server socket with a backlog of one
+        def serverSocket = new ServerSocket(0, 1)
+        def uri = URI.create("http://localhost:${serverSocket.localPort}")
+        // Close the socket, so that the allocated local port is now guaranteed (?) to not be used by anything
+        serverSocket.close()
+
+        and: 'an API client'
+        def client = new DefaultApiClient(new ApiClient.Config(SSLContext.getDefault(),
+                Duration.ofSeconds(99), Duration.ofSeconds(99), "test"))
+
+        when: 'a request is made'
+        def start = now()
+        def responseFuture = client.request(GET, uri, [:], null)
+        waitOrTimeout(responseFuture::isDone, timeout(seconds(3)))
+
+        and: 'the response is retrieved'
+        responseFuture.get()
+
+        then: 'we get a timeout exception'
+        def e = thrown(ExecutionException)
+        e.cause instanceof RetryException
+        e.cause.cause instanceof ConnectException
     }
 
     def "Configured SSL Context is respected"() {
