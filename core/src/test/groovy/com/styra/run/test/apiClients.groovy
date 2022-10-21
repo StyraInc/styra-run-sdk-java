@@ -16,6 +16,10 @@ class CountingApiClient implements ApiClient {
         ++hitCount
         return responseSupplier(method, uri, headers, body)
     }
+
+    @Override
+    void close() {
+    }
 }
 
 static Closure<CompletableFuture<ApiResponse>> exceptionalResult(Exception e) {

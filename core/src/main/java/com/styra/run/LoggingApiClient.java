@@ -36,4 +36,10 @@ public class LoggingApiClient implements ApiClient {
         }
         return response;
     }
+
+    @Override
+    public void close() throws Exception {
+        logger.debug("Closing API-Client");
+        delegate.close();
+    }
 }

@@ -40,7 +40,7 @@ import static com.styra.run.utils.Null.orThrow;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
-public class StyraRun {
+public class StyraRun implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(StyraRun.class);
 
     private static final Predicate<Result<?>> DEFAULT_CHECK_PREDICATE = (result) -> result.getSafe(Boolean.class, false);
@@ -218,6 +218,11 @@ public class StyraRun {
                 });
     }
 
+    @Override
+    public void close() throws Exception {
+        apiClient.close();
+    }
+
     private CompletableFuture<String> serializeBody(SerializableAsMap body) {
         try {
             return completedFuture(getJson().from(Null.map(body,
@@ -296,7 +301,6 @@ public class StyraRun {
         }
     }
 
-    // TODO: configurable API-client
     public static final class Builder {
         private final String envUri;
         private final List<String> gateways;

@@ -12,31 +12,49 @@ public class DefaultApiClient implements ApiClient {
     private final HttpClient client;
 
     public DefaultApiClient(Config config) {
-        this.config = config;
-        client = HttpClient.newBuilder()
+        this(config, HttpClient.newBuilder()
                 .sslContext(config.getSslContext())
                 .connectTimeout(config.getConnectionTimeout())
-                .build();
+                .build());
+    }
+
+    public DefaultApiClient(Config config, HttpClient client) {
+        this.config = config;
+        this.client = client;
+    }
+
+    // FIXME: Throw RetryException on timeouts/connection issues
+    @Override
+    public CompletableFuture<ApiResponse> request(Method method, URI uri, Map<String, String> headers, String body) {
+        var requestBuilder = HttpRequest.newBuilder(uri)
+                .timeout(config.getRequestTimeout())
+                .setHeader("User-Agent", config.getUserAgent());
+        headers.forEach(requestBuilder::header);
+
+        switch (method) {
+            case GET:
+                requestBuilder.GET();
+                break;
+            case PUT:
+                requestBuilder.PUT(publisherFor(body));
+                break;
+            case POST:
+                requestBuilder.POST(publisherFor(body));
+                break;
+            case DELETE:
+                requestBuilder.DELETE();
+                break;
+            default:
+                return CompletableFuture.failedFuture(new StyraRunException(String.format("Unsupported method %s", method)));
+        }
+
+        var request = requestBuilder.build();
+        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                .thenApply((response) -> new ApiResponse(response.statusCode(), response.body()));
     }
 
     @Override
-    public CompletableFuture<ApiResponse> request(Method method, URI uri, Map<String, String> headers, String body) {
-        var requestBuilder = HttpRequest.newBuilder(uri);
-        headers.forEach(requestBuilder::header);
-        switch (method) {
-            case GET: requestBuilder.GET(); break;
-            case PUT: requestBuilder.PUT(publisherFor(body)); break;
-            case POST: requestBuilder.POST(publisherFor(body)); break;
-            case DELETE: requestBuilder.DELETE(); break;
-            default: return CompletableFuture.failedFuture(new StyraRunException(String.format("Unsupported method %s", method)));
-        }
-
-        var request = requestBuilder
-                .timeout(config.getRequestTimeout())
-                .setHeader("User-Agent", config.getUserAgent())
-                .build();
-        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                .thenApply((response) -> new ApiResponse(response.statusCode(), response.body()));
+    public void close() {
     }
 
     private static HttpRequest.BodyPublisher publisherFor(String body) {

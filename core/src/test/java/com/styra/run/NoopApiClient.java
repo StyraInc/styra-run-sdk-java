@@ -16,4 +16,8 @@ public class NoopApiClient implements ApiClient, ApiClientFactory {
     public ApiClient create(Config ignored) {
         return new NoopApiClient();
     }
+
+    @Override
+    public void close() {
+    }
 }

@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public interface ApiClient {
+public interface ApiClient extends AutoCloseable {
     // TODO: package request params into ApiRequest object?
     CompletableFuture<ApiResponse> request(Method method, URI uri, Map<String, String> headers, String body);
 
