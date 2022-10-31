@@ -2,7 +2,7 @@ package com.styra.run.discovery
 
 import com.styra.run.ApiError
 import com.styra.run.ApiResponse
-import com.styra.run.Json
+import com.styra.run.DefaultJson
 import com.styra.run.StyraRunException
 import com.styra.run.StyraRunHttpException
 import com.styra.run.test.CountingApiClient
@@ -14,7 +14,7 @@ import java.util.concurrent.CompletableFuture
 import static com.styra.run.ApiClient.Method.GET
 
 class ApiGatewaySelectorSpec extends Specification {
-    private static JSON = new Json()
+    private static JSON = new DefaultJson()
     private static final ENV_URI = URI.create('https://localhost:1337')
     private static final MAX_ATTEMPTS = 3
     private static final HEADER_SUPPLIER = { -> [:] }

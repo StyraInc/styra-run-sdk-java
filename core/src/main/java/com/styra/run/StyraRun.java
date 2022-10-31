@@ -40,6 +40,10 @@ import static com.styra.run.utils.Null.orThrow;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
+/**
+ * The Styra Run client.
+ * Provides functionality for querying policy rules and getting, upserting, and deleting data in Styra Run.
+ */
 public class StyraRun implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(StyraRun.class);
 
@@ -70,10 +74,25 @@ public class StyraRun implements AutoCloseable {
         return apiClient;
     }
 
+    /**
+     * Query a policy rule at the given <code>path</code>.
+     *
+     * @param path the String path to the policy rule
+     * @return a {@link CompletableFuture} carrying the {@link Result} encapsulating the query result
+     * @see #query(String, Input) 
+     */
     public CompletableFuture<Result<?>> query(String path) {
         return query(path, null);
     }
 
+    /**
+     * Query a policy rule at the given <code>path</code>, with the given <code>input</code>.
+     *
+     * @param path the String path to the policy rule
+     * @param input the {@link Input} value for the policy
+     * @return a {@link CompletableFuture} carrying the {@link Result} encapsulating the query result
+     * @see #query(String)
+     */
     public CompletableFuture<Result<?>> query(String path, Input<?> input) {
         requireNonNull(path, "path must not be null");
 
@@ -90,14 +109,42 @@ public class StyraRun implements AutoCloseable {
                 });
     }
 
+    /**
+     * Creates a {@link BatchQueryBuilder} for conveniently building batch queries.
+     *
+     * @return a new {@link BatchQueryBuilder}
+     */
     public BatchQueryBuilder batchQueryBuilder() {
         return new BatchQueryBuilder();
     }
 
+    /**
+     * Make a batch query to the Styra Run API, where each {@link BatchQuery.Item} in <code>items</code> is a query.
+     *
+     * The returned {@link ListResult} maintains the order of <code>items</code>.
+     *
+     * @param items the list of queries to execute
+     * @return a {@link CompletableFuture} carrying the {@link ListResult} enumerating the results for each submitted query
+     * @see #batchQuery(List, Input)
+     * @see #batchQueryBuilder()
+     */
     public CompletableFuture<ListResult> batchQuery(List<BatchQuery.Item> items) {
         return batchQuery(items, null);
     }
 
+    /**
+     * Make a batch query to the Styra Run API, where each {@link BatchQuery.Item} in <code>items</code> is a query,
+     * and <code>globalInput</code> is the default input value that will be applied to any query entry that doesn't
+     * contain its own <code>input</code> value.
+     *
+     * The returned {@link ListResult} maintains the order of <code>items</code>.
+     *
+     * @param items the list of queries to execute
+     * @param globalInput the global input value to use as default
+     * @return a {@link CompletableFuture} carrying the {@link ListResult} enumerating the results for each submitted query
+     * @see #batchQuery(List)
+     * @see #batchQueryBuilder()
+     */
     public CompletableFuture<ListResult> batchQuery(List<BatchQuery.Item> items, Input<?> globalInput) {
         requireNonNull(items, "items must not be null");
         if (items.isEmpty()) {
@@ -139,18 +186,52 @@ public class StyraRun implements AutoCloseable {
                 .thenApply(ListResult::fromResponseMap);
     }
 
+    /**
+     * Query a policy rule at the given <code>path</code>, expecting a boolean result.
+     *
+     * @param path the String path to the policy rule
+     * @return a {@link CompletableFuture} carrying <code>true</code> if the query result contains the boolean value <code>true</code>; <code>false</code> otherwise
+     * @see #check(String, Input)
+     */
     public CompletableFuture<Boolean> check(String path) {
         return check(path, null, DEFAULT_CHECK_PREDICATE);
     }
 
+    /**
+     * Query a policy rule at the given <code>path</code>, expecting a boolean result.
+     *
+     * @param path the String path to the policy rule
+     * @param input the {@link Input} value for the policy
+     * @return <code>true</code> if the query result contains the boolean value <code>true</code>; <code>false</code> otherwise
+     * @see #query(String, Input)
+     */
     public CompletableFuture<Boolean> check(String path, Input<?> input) {
         return check(path, input, DEFAULT_CHECK_PREDICATE);
     }
 
+    /**
+     * Query a policy rule at the given <code>path</code>, applying <code>predicate</code> to the response to generate a
+     *  boolean result.
+     *
+     * @param path the String path to the policy rule
+     * @param predicate a {@link Predicate} for "checking" the {@link Result}
+     * @return a {@link CompletableFuture} carrying the boolean output of applying <code>predicate</code> on the query result
+     * @see #check(String, Input, Predicate)
+     */
     public CompletableFuture<Boolean> check(String path, Predicate<Result<?>> predicate) {
         return check(path, null, predicate);
     }
 
+    /**
+     * Query a policy rule at the given <code>path</code>, applying <code>predicate</code> to the response to generate a
+     * boolean result.
+     *
+     * @param path the String path to the policy rule
+     * @param input the {@link Input} value for the policy
+     * @param predicate a {@link Predicate} for "checking" the {@link Result}
+     * @return a {@link CompletableFuture} carrying the boolean output of applying <code>predicate</code> on the query result
+     * @see #query(String, Input)
+     */
     public CompletableFuture<Boolean> check(String path, Input<?> input, Predicate<Result<?>> predicate) {
         return query(path, input)
                 .thenApply((predicate::test))
@@ -160,14 +241,34 @@ public class StyraRun implements AutoCloseable {
                 });
     }
 
+    /**
+     * Gets the data at <code>path</code>.
+     *
+     * @param path the String path to the data
+     * @return a {@link CompletableFuture} carrying the {@link Result} encapsulating the fetched data
+     */
     public CompletableFuture<Result<?>> getData(String path) {
         return getData(path, () -> null);
     }
 
+    /**
+     * Gets the data at <code>path</code>, or <code>def</code> if no data exists.
+     *
+     * @param path the String path to the data
+     * @param def the default data to return if no data exists
+     * @return a {@link CompletableFuture} carrying the {@link Result} encapsulating the fetched data
+     */
     public CompletableFuture<Result<?>> getData(String path, Object def) {
         return getData(path, () -> def);
     }
 
+    /**
+     * Gets the data at <code>path</code>, or the result of <code>defaultSupplier</code> if no data exists.
+     *
+     * @param path the String path to the data
+     * @param defaultSupplier a {@link Supplier} for the default data to return if no data exists
+     * @return a {@link CompletableFuture} carrying the {@link Result} encapsulating the fetched data
+     */
     public CompletableFuture<Result<?>> getData(String path, Supplier<?> defaultSupplier) {
         requireNonNull(path, "path must not be null");
 
@@ -187,6 +288,13 @@ public class StyraRun implements AutoCloseable {
                 });
     }
 
+    /**
+     * Upserts (creates or updates) the data at <code>path</code> with the provided <code>data</code>.
+     *
+     * @param path the String path to the data
+     * @param data the data to upsert
+     * @return a {@link CompletableFuture} that is completed when this task has been performed
+     */
     public CompletableFuture<Result<Void>> putData(String path, Object data) {
         requireNonNull(path, "path must not be null");
         requireNonNull(data, "data must not be null");
@@ -204,6 +312,12 @@ public class StyraRun implements AutoCloseable {
                 });
     }
 
+    /**
+     * Deletes the data at <code>path</code>.
+     *
+     * @param path the String path to the data
+     * @return a {@link CompletableFuture} that is completed when this task has been performed
+     */
     public CompletableFuture<Result<Void>> deleteData(String path) {
         requireNonNull(path, "path must not be null");
 
@@ -218,6 +332,11 @@ public class StyraRun implements AutoCloseable {
                 });
     }
 
+    /**
+     * Closes any resources this Styra Run client might have allocated.
+     *
+     * @throws Exception if this client could not be closed
+     */
     @Override
     public void close() throws Exception {
         apiClient.close();
@@ -400,7 +519,7 @@ public class StyraRun implements AutoCloseable {
             }
 
             Json json = firstNonNull(
-                    () -> this.json, Json::new);
+                    () -> this.json, DefaultJson::new);
 
             GatewaySelector gatewaySelector;
             if (envUri != null) {

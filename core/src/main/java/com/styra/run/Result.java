@@ -95,8 +95,8 @@ public class Result<T> implements SerializableAsMap {
     }
 
     /**
-     * Returns the typed value of this result, or <code>null</code>.
-     * If the actual value is <code>null</code>, or not of a type assignable from <code>type</code>,
+     * Returns the typed value of this result.
+     * If the value is <code>null</code>, or not of a type assignable from <code>type</code>,
      * the default value <code>def</code> is returned instead.
      *
      * @param type the required type of the value
