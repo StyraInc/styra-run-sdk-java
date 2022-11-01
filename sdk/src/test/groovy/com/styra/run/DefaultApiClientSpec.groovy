@@ -7,6 +7,7 @@ import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
 import okhttp3.tls.HandshakeCertificates
 import okhttp3.tls.HeldCertificate
+import spock.lang.Retry
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -20,6 +21,7 @@ import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import java.time.Duration
 import java.util.concurrent.ExecutionException
+import java.util.concurrent.TimeoutException
 
 import static com.google.code.tempusfugit.temporal.Duration.millis
 import static com.google.code.tempusfugit.temporal.Duration.seconds
@@ -32,6 +34,7 @@ import static com.styra.run.ApiClient.Method.PUT
 import static java.time.Duration.between
 import static java.time.Instant.now
 import static okhttp3.mockwebserver.SocketPolicy.NO_RESPONSE
+import static spock.lang.Retry.Mode.SETUP_FEATURE_CLEANUP
 
 class DefaultApiClientSpec extends Specification {
     def "DefaultApiClient is used by default when no factory is specified"() {
@@ -120,6 +123,7 @@ class DefaultApiClientSpec extends Specification {
         userAgent << ['', 'foobar']
     }
 
+    @Retry(mode = SETUP_FEATURE_CLEANUP, exceptions = [TimeoutException.class])
     @Unroll
     def "Configured connection timeout is respected (#connectionTimeout)"() {
         given: 'a server mocking the Styra Run API that never accepts incoming connections'
@@ -160,6 +164,7 @@ class DefaultApiClientSpec extends Specification {
         ]
     }
 
+    @Retry(mode = SETUP_FEATURE_CLEANUP, exceptions = [TimeoutException.class])
     @Unroll
     def "Configured request timeout is respected (#requestTimeout)"() {
         given: 'a server mocking the Styra Run API that never sends a response'
