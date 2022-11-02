@@ -15,16 +15,12 @@ compileTestJava {
     targetCompatibility = JavaVersion.VERSION_17
 }
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
-    implementation project(':core')
-    implementation 'org.eclipse.jetty:jetty-servlet:11.0.11'
+    implementation project(':styra-run-sdk-core')
+    implementation 'org.eclipse.jetty:jetty-servlet:11.0.12'
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.0'
 }
 
 test {

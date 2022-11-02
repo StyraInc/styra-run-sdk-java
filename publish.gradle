@@ -1,0 +1,40 @@
+apply plugin:'maven-publish'
+apply plugin:'signing'
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            pom {
+                name = "${project.group}:${project.name}"
+                url = 'https://github.com/StyraInc/styra-run-sdk-java'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = "johanfylling"
+                        name = 'Johan Fylling'
+                        email = 'johan.dev@fylling.se'
+                        organization = 'StyraInc'
+                        organizationUrl = 'https://www.styra.com/'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/StyraInc/styra-run-sdk-java.git'
+                    developerConnection = 'scm:git:ssh://github.com/StyraInc/styra-run-sdk-java.git'
+                    url = 'https://github.com/StyraInc/styra-run-sdk-java/tree/main'
+                }
+            }
+        }
+    }
+}
+
+signing {
+    def signingKey = findProperty("signingKey")
+    def signingPassword = findProperty("signingPassword")
+    useInMemoryPgpKeys(signingKey, signingPassword)
+    sign publishing.publications.mavenJava
+}

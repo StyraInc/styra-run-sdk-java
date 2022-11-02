@@ -3,7 +3,8 @@ plugins {
     id 'groovy'
 }
 
-group 'com.styra.run'
+apply from: '../publish.gradle'
+
 version '0.0.1-SNAPSHOT'
 
 compileJava {
@@ -16,26 +17,32 @@ compileTestJava {
     targetCompatibility = JavaVersion.VERSION_17
 }
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
-    implementation 'org.slf4j:slf4j-api:2.0.0'
-    implementation 'com.fasterxml.jackson.jr:jackson-jr-objects:2.13.3'
+    implementation 'org.slf4j:slf4j-api:2.0.3'
+    implementation 'com.fasterxml.jackson.jr:jackson-jr-objects:2.13.4'
 
-    testImplementation 'org.apache.groovy:groovy:4.0.5'
+    testImplementation 'org.apache.groovy:groovy:4.0.6'
     testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-params:5.9.0'
     testImplementation 'org.slf4j:slf4j-api:2.0.3'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.0'
-    testRuntimeOnly 'net.bytebuddy:byte-buddy:1.12.17'
+    testRuntimeOnly 'net.bytebuddy:byte-buddy:1.12.18'
     testRuntimeOnly 'org.objenesis:objenesis:3.3'
-    testRuntimeClasspath 'ch.qos.logback:logback-classic:1.4.1'
+    testRuntimeClasspath 'ch.qos.logback:logback-classic:1.4.4'
 }
 
 test {
     useJUnitPlatform()
 }
 
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            pom {
+                description = 'The Styra Run Java SDK Core library'
+            }
+            from(components.java)
+        }
+    }
+}

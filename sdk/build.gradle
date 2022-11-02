@@ -3,7 +3,8 @@ plugins {
     id 'groovy'
 }
 
-group 'com.styra.run'
+apply from: '../publish.gradle'
+
 version '0.0.1-SNAPSHOT'
 
 compileJava {
@@ -16,22 +17,18 @@ compileTestJava {
     targetCompatibility = JavaVersion.VERSION_17
 }
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
-    implementation project(':core')
+    implementation project(':styra-run-sdk-core')
 
-    testImplementation 'org.apache.groovy:groovy:4.0.5'
+    testImplementation 'org.apache.groovy:groovy:4.0.6'
     testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
     testImplementation 'org.slf4j:slf4j-api:2.0.3'
     testImplementation('com.squareup.okhttp3:mockwebserver:4.10.0')
     testImplementation('com.squareup.okhttp3:okhttp-tls:4.10.0')
     testImplementation('com.google.code.tempus-fugit:tempus-fugit:1.1')
-    testRuntimeOnly 'net.bytebuddy:byte-buddy:1.12.17'
+    testRuntimeOnly 'net.bytebuddy:byte-buddy:1.12.18'
     testRuntimeOnly 'org.objenesis:objenesis:3.3'
-    testRuntimeClasspath 'ch.qos.logback:logback-classic:1.4.1'
+    testRuntimeClasspath 'ch.qos.logback:logback-classic:1.4.4'
 }
 
 test {
@@ -50,4 +47,15 @@ task createProperties(dependsOn: processResources) {
 
 classes {
     dependsOn createProperties
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            pom {
+                description = 'The Styra Run Java SDK'
+            }
+            from(components.java)
+        }
+    }
 }

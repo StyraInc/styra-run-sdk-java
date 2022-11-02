@@ -1,0 +1,14 @@
+allprojects {
+    apply plugin:'java'
+
+    group 'com.styra.run'
+
+    repositories {
+        mavenCentral()
+    }
+
+    java {
+        withSourcesJar()
+        withJavadocJar()
+    }
+}
