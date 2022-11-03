@@ -25,7 +25,9 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: _release
-          path: build/libs
+          path: |
+            core/build/libs/*.jar
+            sdk/build/libs/*.jar
           if-no-files-found: warn
 
   release-to-github:
