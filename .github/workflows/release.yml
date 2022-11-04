@@ -34,7 +34,7 @@ jobs:
           if-no-files-found: warn
 
   release-to-github:
-    name: Push Latest Release
+    name: Push GH Release
     needs: [ build ]
     runs-on: ubuntu-latest
     steps:
@@ -53,3 +53,24 @@ jobs:
           # Required for the `hub` CLI
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./github-release.sh --asset-dir=dist --tag=${TAG_NAME}
+
+  release-to-maven:
+    name: Stage Maven Central Release
+    needs: [ build ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+      - name: Set expectedVersion in Environment
+        run: echo "ORG_GRADLE_PROJECT_expectedVersion=${GITHUB_REF##*/}" >> $GITHUB_ENV
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'adopt'
+      - name: Validate gradle wrapper
+        uses: gradle/wrapper-validation-action@v1
+      - name: Build with Gradle
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: publish

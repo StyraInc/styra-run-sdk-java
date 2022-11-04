@@ -30,6 +30,19 @@ publishing {
             }
         }
     }
+
+    repositories {
+        maven {
+            name = 'OSSRH'
+            credentials {
+                username = findProperty('ossrhUsername')
+                password = findProperty('ossrhPassword')
+            }
+            def releasesRepoUrl = 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/'
+            def snapshotsRepoUrl = 'https://s01.oss.sonatype.org/content/repositories/snapshots/'
+            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+        }
+    }
 }
 
 signing {
@@ -38,3 +51,14 @@ signing {
     useInMemoryPgpKeys(signingKey, signingPassword)
     sign publishing.publications.mavenJava
 }
+
+task assertVersion {
+    doFirst {
+        def expectedVersion = findProperty("expectedVersion").replaceFirst("^v", "")
+        if (expectedVersion != project.version) {
+            throw new GradleException("project version '${project.version}' does not match expected version '$expectedVersion'")
+        }
+    }
+}
+tasks.publish.dependsOn assertVersion
+tasks.publishToMavenLocal.dependsOn assertVersion
