@@ -35,8 +35,8 @@ publishing {
         maven {
             name = 'OSSRH'
             credentials {
-                username = findProperty('ossrhUsername')
-                password = findProperty('ossrhPassword')
+                username = findProperty('ossrhUsername') ?: findProperty('OSSRH_USERNAME')
+                password = findProperty('ossrhPassword') ?: findProperty('OSSRH_PASSWORD')
             }
             def releasesRepoUrl = 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/'
             def snapshotsRepoUrl = 'https://s01.oss.sonatype.org/content/repositories/snapshots/'
@@ -46,15 +46,15 @@ publishing {
 }
 
 signing {
-    def signingKey = findProperty("signingKey")
-    def signingPassword = findProperty("signingPassword")
+    def signingKey = findProperty("signingKey") ?: findProperty("SIGNING_KEY")
+    def signingPassword = findProperty("signingPassword") ?: findProperty("SIGNING_PASSWORD")
     useInMemoryPgpKeys(signingKey, signingPassword)
     sign publishing.publications.mavenJava
 }
 
 task assertVersion {
     doFirst {
-        def expectedVersion = findProperty("expectedVersion").replaceFirst("^v", "")
+        def expectedVersion = (findProperty("expectedVersion") ?: findProperty("EXPECTED_VERSION")).replaceFirst("^v", "")
         if (expectedVersion != project.version) {
             throw new GradleException("project version '${project.version}' does not match expected version '$expectedVersion'")
         }
