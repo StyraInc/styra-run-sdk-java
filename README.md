@@ -2,9 +2,21 @@
 
 ## How to Install
 
-TODO: Gradle dependency
+### Gradle
 
-TODO: Maven dependency
+```gradle
+implementation 'com.styra.run:styra-run-sdk:0.0.1'
+```
+
+### Apache Maven
+
+```maven
+<dependency>
+  <groupId>com.styra.run</groupId>
+  <artifactId>styra-run-sdk</artifactId>
+  <version>0.0.1</version>
+</dependency>
+```
 
 ## How to Use
 
@@ -173,4 +185,6 @@ A release is created through the following steps:
 2. Push a version tag in the format `vX.Y.Z`; e.g. `v0.1.4`. 
 3. Once the `Release` workflow has successfully completed:
    1. Complete the GH draft release
-   2. Promote the staged libraries at [OSSRH](https://s01.oss.sonatype.org) to Maven Central by `Closing` the staged repository.
+   2. Promote the staged libraries at [OSSRH](https://s01.oss.sonatype.org) to Maven Central by 
+      1. `Closing` the staged repository, and then
+      2. `Release` it (grab a coffee, it might take hours before the release shows up at Maven Central)
