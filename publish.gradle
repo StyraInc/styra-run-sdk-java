@@ -1,0 +1,64 @@
+apply plugin:'maven-publish'
+apply plugin:'signing'
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            pom {
+                name = "${project.group}:${project.name}"
+                url = 'https://github.com/StyraInc/styra-run-sdk-java'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = "johanfylling"
+                        name = 'Johan Fylling'
+                        email = 'johan.dev@fylling.se'
+                        organization = 'StyraInc'
+                        organizationUrl = 'https://www.styra.com/'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/StyraInc/styra-run-sdk-java.git'
+                    developerConnection = 'scm:git:ssh://github.com/StyraInc/styra-run-sdk-java.git'
+                    url = 'https://github.com/StyraInc/styra-run-sdk-java/tree/main'
+                }
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = 'OSSRH'
+            credentials {
+                username = findProperty('ossrhUsername') ?: findProperty('OSSRH_USERNAME')
+                password = findProperty('ossrhPassword') ?: findProperty('OSSRH_PASSWORD')
+            }
+            def releasesRepoUrl = 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/'
+            def snapshotsRepoUrl = 'https://s01.oss.sonatype.org/content/repositories/snapshots/'
+            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+        }
+    }
+}
+
+signing {
+    def signingKey = findProperty("signingKey") ?: findProperty("SIGNING_KEY")
+    def signingPassword = findProperty("signingPassword") ?: findProperty("SIGNING_PASSWORD")
+    useInMemoryPgpKeys(signingKey, signingPassword)
+    sign publishing.publications.mavenJava
+}
+
+task assertVersion {
+    doFirst {
+        def expectedVersion = (findProperty("expectedVersion") ?: findProperty("EXPECTED_VERSION")).replaceFirst("^v", "")
+        if (expectedVersion != project.version) {
+            throw new GradleException("project version '${project.version}' does not match expected version '$expectedVersion'")
+        }
+    }
+}
+tasks.publish.dependsOn assertVersion
+tasks.publishToMavenLocal.dependsOn assertVersion
