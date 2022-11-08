@@ -6,6 +6,7 @@ import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
 import okhttp3.tls.HandshakeCertificates
 import okhttp3.tls.HeldCertificate
+import org.junit.Ignore
 import spock.lang.Retry
 import spock.lang.Specification
 import spock.lang.Unroll
@@ -128,7 +129,7 @@ abstract class AbstractApiClientSpec extends Specification {
         userAgent << ['', 'foobar']
     }
 
-    //    @Ignore("Fails with TimeoutException on GitHub")
+    @Ignore("Flaky: Fails with TimeoutException on GitHub")
     @Retry(mode = SETUP_FEATURE_CLEANUP, exceptions = [TimeoutException.class])
     @Unroll
     def "Configured connection timeout is respected (#connectionTimeout)"() {
