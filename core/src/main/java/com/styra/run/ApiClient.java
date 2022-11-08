@@ -33,7 +33,11 @@ public interface ApiClient extends AutoCloseable {
         GET,
         PUT,
         POST,
-        DELETE
+        DELETE;
+
+        boolean allowsBody() {
+            return this == PUT || this == POST;
+        }
     }
 
     class RequestBuilder {
