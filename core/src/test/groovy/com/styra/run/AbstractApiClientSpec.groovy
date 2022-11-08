@@ -129,47 +129,47 @@ abstract class AbstractApiClientSpec extends Specification {
         userAgent << ['', 'foobar']
     }
 
-    @Ignore("Flaky: Fails with TimeoutException on GitHub")
-    @Retry(mode = SETUP_FEATURE_CLEANUP, exceptions = [TimeoutException.class])
-    @Unroll
-    def "Configured connection timeout is respected (#connectionTimeout)"() {
-        given: 'a server mocking the Styra Run API that never accepts incoming connections'
-        // a server socket with a backlog of one
-        def serverSocket = new ServerSocket(0, 1)
-        // fill up the backlog so the API client can't connect
-        new Socket().connect(serverSocket.localSocketAddress)
-
-        def uri = URI.create("http://localhost:${serverSocket.localPort}")
-
-        and: 'an API client'
-        def client = createApiClient(new ApiClient.Config(SSLContext.getDefault(),
-                connectionTimeout, Duration.ofSeconds(99), "test"))
-
-        when: 'a request is made'
-        def start = now()
-        def responseFuture = client.request(GET, uri, [:], null)
-        waitOrTimeout(responseFuture::isDone, timeout(millis(connectionTimeout.toMillis() + 1_000)))
-
-        then: 'the timeout happened within reasonable bounds'
-        assertDivergence(between(start, now()), connectionTimeout, Duration.ofMillis(200))
-
-        when: 'the response is retrieved'
-        responseFuture.get()
-
-        then: 'we get a timeout exception'
-        def e = thrown(ExecutionException)
-        getExpectedConnectionTimeoutException().isInstance(e.cause)
-
-        cleanup:
-        serverSocket.close()
-
-        where:
-        connectionTimeout << [
-                Duration.ofMillis(500),
-                Duration.ofSeconds(1),
-                Duration.ofSeconds(3)
-        ]
-    }
+//    @Ignore("Flaky: Fails with TimeoutException on GitHub")
+//    @Retry(mode = SETUP_FEATURE_CLEANUP, exceptions = [TimeoutException.class])
+//    @Unroll
+//    def "Configured connection timeout is respected (#connectionTimeout)"() {
+//        given: 'a server mocking the Styra Run API that never accepts incoming connections'
+//        // a server socket with a backlog of one
+//        def serverSocket = new ServerSocket(0, 1)
+//        // fill up the backlog so the API client can't connect
+//        new Socket().connect(serverSocket.localSocketAddress)
+//
+//        def uri = URI.create("http://localhost:${serverSocket.localPort}")
+//
+//        and: 'an API client'
+//        def client = createApiClient(new ApiClient.Config(SSLContext.getDefault(),
+//                connectionTimeout, Duration.ofSeconds(99), "test"))
+//
+//        when: 'a request is made'
+//        def start = now()
+//        def responseFuture = client.request(GET, uri, [:], null)
+//        waitOrTimeout(responseFuture::isDone, timeout(millis(connectionTimeout.toMillis() + 1_000)))
+//
+//        then: 'the timeout happened within reasonable bounds'
+//        assertDivergence(between(start, now()), connectionTimeout, Duration.ofMillis(200))
+//
+//        when: 'the response is retrieved'
+//        responseFuture.get()
+//
+//        then: 'we get a timeout exception'
+//        def e = thrown(ExecutionException)
+//        getExpectedConnectionTimeoutException().isInstance(e.cause)
+//
+//        cleanup:
+//        serverSocket.close()
+//
+//        where:
+//        connectionTimeout << [
+//                Duration.ofMillis(500),
+//                Duration.ofSeconds(1),
+//                Duration.ofSeconds(3)
+//        ]
+//    }
 
     @Retry(mode = SETUP_FEATURE_CLEANUP, exceptions = [TimeoutException.class])
     @Unroll
