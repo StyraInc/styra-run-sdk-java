@@ -6,7 +6,6 @@ import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
 import okhttp3.tls.HandshakeCertificates
 import okhttp3.tls.HeldCertificate
-import org.junit.Ignore
 import spock.lang.Retry
 import spock.lang.Specification
 import spock.lang.Unroll
