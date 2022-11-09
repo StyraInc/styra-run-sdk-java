@@ -515,7 +515,7 @@ public class StyraRun implements AutoCloseable {
             if (apiClientFactory != null) {
                 apiClient = apiClientFactory.create(clientConfig);
             } else {
-                apiClient = ApiClientLoader.loadDefaultClient().create(clientConfig);
+                apiClient = ApiClientLoader.load(clientConfig);
             }
 
             Json json = firstNonNull(

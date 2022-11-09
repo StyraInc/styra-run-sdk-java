@@ -114,8 +114,9 @@ Should custom JSON serialization/deserialization be required, an instance of a c
 
 ## Java 10 and Older
 
-The Styra Run SDK for Java 11, and newer, makes use of `java.net.http.HttpClient` for communicating with the Styra Run API,
-which isn't available in Java 10, and older. 
+The Styra Run SDK for Java 11, and newer, facilitates asynchronous communication with the Styra Run API.
+This implementation isn't available in Java 10, and older; instead, the SDK will fall back to a blocking
+client for Java 8 and up to, but not including, Java 11.
 
 The core Styra Run SDK exposes the `ApiClient` interface, which can be implemented to provide a custom HTTP client
 for connecting to the Styra Run API. Implementations can be injected either via the Styra Run builder, 
@@ -174,17 +175,3 @@ implementation, only include the Core library on your class-path, not the SDK li
 ```
 com.example.MyApiClientFactory
 ```
-
-## Releasing
-
-A release is created through the following steps:
-
-1. Update library versions (release task will fail if versions doesn't match the pushed tag - ignoring `v` prefix)
-   1. `core/build.gradle`
-   2. `sdk/build.gradle`
-2. Push a version tag in the format `vX.Y.Z`; e.g. `v0.1.4`. 
-3. Once the `Release` workflow has successfully completed:
-   1. Complete the GH draft release
-   2. Promote the staged libraries at [OSSRH](https://s01.oss.sonatype.org) to Maven Central by 
-      1. `Closing` the staged repository, and then
-      2. `Release` it (grab a coffee, it might take hours before the release shows up at Maven Central)

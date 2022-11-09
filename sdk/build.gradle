@@ -20,6 +20,7 @@ compileTestJava {
 dependencies {
     implementation project(':styra-run-sdk-core')
 
+    testImplementation project(':styra-run-sdk-core').sourceSets.test.output
     testImplementation 'org.apache.groovy:groovy:4.0.6'
     testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
     testImplementation 'org.slf4j:slf4j-api:2.0.3'

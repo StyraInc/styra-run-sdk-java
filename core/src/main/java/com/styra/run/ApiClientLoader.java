@@ -8,10 +8,11 @@ import java.util.stream.StreamSupport;
 final class ApiClientLoader {
     private static final ServiceLoader<ApiClientFactory> loader = ServiceLoader.load(ApiClientFactory.class);
 
-    static ApiClientFactory loadDefaultClient() {
+    static ApiClient load(ApiClient.Config config) {
         loader.reload();
         return StreamSupport.stream(loader.spliterator(), false)
                 .findFirst()
-                .orElseThrow(() -> new IllegalStateException("No API Client implementation found on classpath"));
+                .map((factory) -> factory.create(config))
+                .orElse(new BlockingApiClient(config));
     }
 }
