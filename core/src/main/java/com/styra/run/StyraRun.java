@@ -7,6 +7,7 @@ import com.styra.run.discovery.GatewaySelectionStrategy;
 import com.styra.run.discovery.GatewaySelector;
 import com.styra.run.discovery.SimpleGatewaySelectionStrategy;
 import com.styra.run.discovery.StaticGatewaySelector;
+import com.styra.run.rbac.RbacManager;
 import com.styra.run.spi.ApiClientFactory;
 import com.styra.run.utils.Futures;
 import com.styra.run.utils.Null;
@@ -332,6 +333,10 @@ public class StyraRun implements AutoCloseable {
                 });
     }
 
+    public RbacManager rbac() {
+        return new RbacManager(this);
+    }
+
     /**
      * Closes any resources this Styra Run client might have allocated.
      *
@@ -377,10 +382,29 @@ public class StyraRun implements AutoCloseable {
         return future;
     }
 
+    /**
+     * Returns a builder for {@link StyraRun}, initialized with a project environment URL.
+     *
+     * The gateways used for accessing the Styra Run API are dynamically fetched from the project environment.
+     *
+     * @param url the URL to your Styra Run project environment
+     * @param token the access token (App Key) for your Styra Run project environment
+     * @return a {@link Builder} for a {@link StyraRun} instance
+     */
     public static Builder builder(String url, String token) {
         return new Builder(url, token);
     }
 
+    /**
+     * Returns a builder for {@link StyraRun}, initialized with Fixed list of gateways.
+     *
+     * Note: gateways aren't dynamically fetched from the project environment, and might therefore not
+     * be up-to-date.
+     *
+     * @param gateways the list of gateway URLs to use when making requests to the Styra Run API
+     * @param token the access token (App Key) for your Styra Run project environment
+     * @return a {@link Builder} for a {@link StyraRun} instance
+     */
     public static Builder builder(List<String> gateways, String token) {
         return new Builder(gateways, token);
     }

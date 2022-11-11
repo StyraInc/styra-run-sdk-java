@@ -7,8 +7,8 @@ import com.styra.run.utils.Types;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
+import static com.styra.run.utils.Arguments.requireNotEmpty;
 import static com.styra.run.utils.Null.firstNonNull;
 
 public class AuthorizationInput extends MapInput<String, Object> {
@@ -16,10 +16,8 @@ public class AuthorizationInput extends MapInput<String, Object> {
     private static final String TENANT_KEY = "tenant";
 
     public AuthorizationInput(String subject, String tenant) {
-        super(createMap(subject, tenant));
-
-        Objects.requireNonNull(subject, "subject must not be null");
-        Objects.requireNonNull(tenant, "tenant must not be null");
+        super(createMap(subject,
+                requireNotEmpty(tenant, "tenant must not be null or empty")));
     }
 
     private AuthorizationInput(Map<String, Object> map) {
