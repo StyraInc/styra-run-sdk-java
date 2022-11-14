@@ -1,5 +1,7 @@
 package com.styra.run;
 
+import com.styra.run.session.InputTransformer;
+import com.styra.run.session.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,7 +18,7 @@ import static com.styra.run.utils.Futures.async;
  */
 // TODO: By default, only pass-through boolean policy decisions; to protect against data siphoning.
 // TODO: Configurable allow-list of rule paths.
-public class Proxy<S extends Proxy.Session> {
+public class Proxy<S extends Session> {
     private static final Logger logger = LoggerFactory.getLogger(Proxy.class);
 
     private final StyraRun styraRun;
@@ -47,14 +49,4 @@ public class Proxy<S extends Proxy.Session> {
                 }));
     }
 
-    public interface Session {}
-
-    @FunctionalInterface
-    public interface InputTransformer<S extends Session> {
-        Input<?> transform(Input<?> input, String path, S session);
-
-        static <S extends Session> InputTransformer<S> identity() {
-            return (input, path, session) -> input;
-        }
-    }
 }

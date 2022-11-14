@@ -1,9 +1,12 @@
 package com.styra.run;
 
-import com.styra.run.rbac.AuthorizationInput;
+import com.styra.run.session.SessionManager;
+import com.styra.run.session.TenantSession;
 import com.styra.run.rbac.RbacManager;
 import com.styra.run.rbac.Role;
 import com.styra.run.rbac.User;
+import com.styra.run.session.InputTransformer;
+import com.styra.run.session.Session;
 import jakarta.servlet.AsyncContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletOutputStream;
@@ -28,15 +31,15 @@ public final class RbacServlet extends StyraRunServlet {
         super();
     }
 
-    public RbacServlet(StyraRun styraRun, SessionManager<Proxy.Session> sessionManager, Proxy.InputTransformer<Proxy.Session> inputTransformer) {
+    public RbacServlet(StyraRun styraRun, SessionManager<Session> sessionManager, InputTransformer<Session> inputTransformer) {
         super(styraRun, sessionManager, inputTransformer);
     }
 
-    static <S extends Proxy.Session> RbacServlet from(StyraRun styraRun, SessionManager<S> sessionManager, Proxy.InputTransformer<S> inputTransformer) {
+    static <S extends Session> RbacServlet from(StyraRun styraRun, SessionManager<S> sessionManager, InputTransformer<S> inputTransformer) {
         //noinspection unchecked
         return new RbacServlet(styraRun,
-                (SessionManager<Proxy.Session>) sessionManager,
-                (Proxy.InputTransformer<Proxy.Session>) inputTransformer);
+                (SessionManager<Session>) sessionManager,
+                (InputTransformer<Session>) inputTransformer);
     }
 
     @Override
@@ -77,10 +80,13 @@ public final class RbacServlet extends StyraRunServlet {
                     .replaceFirst(pathPrefix, "");
         }
 
-        AuthorizationInput getAuthzInput(HttpServletRequest request) throws AuthorizationException {
+        TenantSession getSession(HttpServletRequest request) throws AuthorizationException {
             try {
-                Proxy.Session session = getSessionManager().getSession(request);
-                return AuthorizationInput.from(getInputTransformer()
+                Session session = getSessionManager().getSession(request);
+                if (session instanceof TenantSession) {
+                    return (TenantSession) session;
+                }
+                return TenantSession.from(getInputTransformer()
                         .transform(Input.empty(), RbacManager.AUTHZ_PATH, session));
             } catch (Throwable t) {
                 throw new AuthorizationException("Failed to form authorization input from session data", t);
@@ -97,7 +103,7 @@ public final class RbacServlet extends StyraRunServlet {
         protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
             RbacManager rbac = getRbacManager();
             handleAsync(request, response, (body, out, async) ->
-                    rbac.getRoles(getAuthzInput(request))
+                    rbac.getRoles(getSession(request))
                             .thenAccept((roles) -> writeResult(roles, response, out, async))
                             .exceptionally((e) -> {
                                 handleError("Failed to GET roles", e, async, response);
@@ -115,7 +121,7 @@ public final class RbacServlet extends StyraRunServlet {
         protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
             RbacManager rbac = getRbacManager();
             handleAsync(request, response, (body, out, async) ->
-                    rbac.listUserBindings(getAuthzInput(request))
+                    rbac.listUserBindings(getSession(request))
                             .thenAccept((bindings) -> writeResult(bindings, response, out, async))
                             .exceptionally((e) -> {
                                 handleError("Failed to GET user bindings for", e, async, response);
@@ -141,7 +147,7 @@ public final class RbacServlet extends StyraRunServlet {
                 String userId = getUserId(request);
                 RbacManager rbac = getRbacManager();
                 handleAsync(request, response, (body, out, async) ->
-                        rbac.getUserBinding(new User(userId), getAuthzInput(request))
+                        rbac.getUserBinding(new User(userId), getSession(request))
                                 .thenAccept((binding) -> writeResult(binding.getRoles().stream()
                                         .map(Role::getName)
                                         .collect(Collectors.toList()), response, out, async))
@@ -160,7 +166,7 @@ public final class RbacServlet extends StyraRunServlet {
                 String userId = getUserId(request);
                 RbacManager rbac = getRbacManager();
                 handleAsync(request, response, (body, out, async) ->
-                        rbac.deleteUserBinding(new User(userId), getAuthzInput(request))
+                        rbac.deleteUserBinding(new User(userId), getSession(request))
                                 .thenAccept((Void) -> writeResult(null, response, out, async))
                                 .exceptionally((e) -> {
                                     handleError(String.format("Failed to PUT user binding for '%s'", userId), e, async, response);
@@ -181,7 +187,7 @@ public final class RbacServlet extends StyraRunServlet {
                             .stream()
                             .map(Role::new)
                             .collect(Collectors.toList());
-                    rbac.setUserBinding(new User(userId), roles, getAuthzInput(request))
+                    rbac.setUserBinding(new User(userId), roles, getSession(request))
                             .thenAccept((Void) -> writeResult(null, response, out, async))
                             .exceptionally((e) -> {
                                 handleError(String.format("Failed to DELETE user binding for '%s'", userId), e, async, response);

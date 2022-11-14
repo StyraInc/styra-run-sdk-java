@@ -1,6 +1,5 @@
-package com.styra.run;
+package com.styra.run.session;
 
-import com.styra.run.Proxy.Session;
 import jakarta.servlet.http.HttpServletRequest;
 
 public interface SessionManager<S extends Session> {

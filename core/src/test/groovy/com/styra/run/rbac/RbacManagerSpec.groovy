@@ -3,6 +3,7 @@ package com.styra.run.rbac
 import com.fasterxml.jackson.jr.ob.JSON
 import com.styra.run.ApiClient
 import com.styra.run.StyraRun
+import com.styra.run.session.TenantSession
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -18,7 +19,7 @@ class RbacManagerSpec extends Specification {
     @Unroll
     def "RBAC-Manager can fetch roles"() {
         def baseUri = 'https://example.com/my/proj/env'
-        def authzInput = new AuthorizationInput('alice', 'AcmeCorp')
+        def authzInput = new TenantSession('alice', 'AcmeCorp')
 
         given: 'a StyraRun instance that expects a fixed set of requests'
         def apiClient = mockApiClient([
@@ -61,7 +62,7 @@ class RbacManagerSpec extends Specification {
         def expectedBinding = new UserBinding(user, roleList)
 
         def baseUri = 'https://example.com/my/proj/env'
-        def authzInput = new AuthorizationInput('alice', tenant)
+        def authzInput = new TenantSession('alice', tenant)
 
         given: 'a StyraRun instance that expects a fixed set of requests'
         def apiClient = mockApiClient([
@@ -104,7 +105,7 @@ class RbacManagerSpec extends Specification {
         def roleList = roles.collect { new Role(it as String) }
 
         def baseUri = 'https://example.com/my/proj/env'
-        def authzInput = new AuthorizationInput('alice', tenant)
+        def authzInput = new TenantSession('alice', tenant)
 
         given: 'a StyraRun instance that expects a fixed set of requests'
         def apiClient = mockApiClient([
@@ -145,7 +146,7 @@ class RbacManagerSpec extends Specification {
         def user = new User(userId)
 
         def baseUri = 'https://example.com/my/proj/env'
-        def authzInput = new AuthorizationInput('alice', tenant)
+        def authzInput = new TenantSession('alice', tenant)
 
         given: 'a StyraRun instance that expects a fixed set of requests'
         def apiClient = mockApiClient([
@@ -182,7 +183,7 @@ class RbacManagerSpec extends Specification {
     @Unroll
     def "RBAC-Manager can list all user-bindings"() {
         def baseUri = 'https://example.com/my/proj/env'
-        def authzInput = new AuthorizationInput('alice', tenant)
+        def authzInput = new TenantSession('alice', tenant)
 
         given: 'a StyraRun instance that expects a fixed set of requests'
         def apiClient = mockApiClient([
@@ -227,7 +228,7 @@ class RbacManagerSpec extends Specification {
     @Unroll
     def "RBAC-Manager can get user-bindings for a list of users"() {
         def baseUri = 'https://example.com/my/proj/env'
-        def authzInput = new AuthorizationInput('alice', tenant)
+        def authzInput = new TenantSession('alice', tenant)
         def userList = users.collect { new User(it) }
 
         given: 'a StyraRun instance that expects a fixed set of requests'

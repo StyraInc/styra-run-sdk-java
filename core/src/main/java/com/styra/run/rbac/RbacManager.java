@@ -3,6 +3,7 @@ package com.styra.run.rbac;
 import com.styra.run.AuthorizationException;
 import com.styra.run.StyraRun;
 import com.styra.run.StyraRunException;
+import com.styra.run.session.TenantSession;
 import com.styra.run.utils.Futures;
 
 import java.util.Collections;
@@ -26,43 +27,43 @@ public class RbacManager {
         this.styraRun = styraRun;
     }
 
-    public CompletableFuture<List<String>> getRoles(AuthorizationInput authzInput) {
-        return styraRun.check(AUTHZ_PATH, authzInput)
+    public CompletableFuture<List<String>> getRoles(TenantSession session) {
+        return styraRun.check(AUTHZ_PATH, session)
                 .thenApply(this::assertAllowed)
                 .thenCompose((Void) -> styraRun.query(ROLES_PATH))
                 .thenApply(async((result) -> result.getListOf(String.class)));
     }
 
-    public CompletableFuture<UserBinding> getUserBinding(User user, AuthorizationInput authzInput) {
-        return styraRun.check(AUTHZ_PATH, authzInput)
+    public CompletableFuture<UserBinding> getUserBinding(User user, TenantSession session) {
+        return styraRun.check(AUTHZ_PATH, session)
                 .thenApply(this::assertAllowed)
-                .thenCompose((Void) -> getUserBinding(authzInput.getTenant(), user));
+                .thenCompose((Void) -> getUserBinding(session.getTenant(), user));
     }
 
-    public CompletableFuture<Void> setUserBinding(User user, List<Role> roles, AuthorizationInput authzInput) {
+    public CompletableFuture<Void> setUserBinding(User user, List<Role> roles, TenantSession session) {
         List<String> data = roles.stream().map(Role::getName).collect(Collectors.toList());
-        return styraRun.check(AUTHZ_PATH, authzInput)
+        return styraRun.check(AUTHZ_PATH, session)
                 .thenApply(this::assertAllowed)
                 .thenCompose((Void) -> styraRun.putData(
-                        joinPath(USER_BINDINGS_PATH, authzInput.getTenant(), user.getId()),
+                        joinPath(USER_BINDINGS_PATH, session.getTenant(), user.getId()),
                         data))
                 .thenApply((Void) -> null);
     }
 
-    public CompletableFuture<Void> deleteUserBinding(User user, AuthorizationInput authzInput) {
-        return styraRun.check(AUTHZ_PATH, authzInput)
+    public CompletableFuture<Void> deleteUserBinding(User user, TenantSession session) {
+        return styraRun.check(AUTHZ_PATH, session)
                 .thenApply(this::assertAllowed)
                 .thenCompose((Void) -> styraRun.deleteData(
-                        joinPath(USER_BINDINGS_PATH, authzInput.getTenant(), user.getId())))
+                        joinPath(USER_BINDINGS_PATH, session.getTenant(), user.getId())))
                 .thenApply((Void) -> null);
     }
 
     // TODO: Sort by user-id
-    public CompletableFuture<List<UserBinding>> listUserBindings(AuthorizationInput authzInput) {
-        return styraRun.check(AUTHZ_PATH, authzInput)
+    public CompletableFuture<List<UserBinding>> listUserBindings(TenantSession session) {
+        return styraRun.check(AUTHZ_PATH, session)
                 .thenApply(this::assertAllowed)
                 .thenCompose((Void) -> styraRun.getData(
-                        joinPath(USER_BINDINGS_PATH, authzInput.getTenant())))
+                        joinPath(USER_BINDINGS_PATH, session.getTenant())))
                 .thenApply(async((result) ->
                         result.getMapOf(List.class).entrySet().stream()
                                 .map((entry) -> {
@@ -87,15 +88,15 @@ public class RbacManager {
      * will contain an empty list of roles.
      *
      * @param users the {@link User users} to retrieve {@link UserBinding user-bindings} for
-     * @param authzInput the session information authorizing the request
+     * @param session the session information authorizing the request
      * @return a list of resolved {@link UserBinding user-bindings}
      */
-    public CompletableFuture<List<UserBinding>> getUserBindings(List<User> users, AuthorizationInput authzInput) {
-        return styraRun.check(AUTHZ_PATH, authzInput)
+    public CompletableFuture<List<UserBinding>> getUserBindings(List<User> users, TenantSession session) {
+        return styraRun.check(AUTHZ_PATH, session)
                 .thenApply(this::assertAllowed)
                 .thenCompose((Void) -> {
                     List<CompletableFuture<UserBinding>> futures = users.stream()
-                            .map(user -> getUserBinding(authzInput.getTenant(), user))
+                            .map(user -> getUserBinding(session.getTenant(), user))
                             .collect(Collectors.toList());
                     return Futures.allOf(futures);
                 });

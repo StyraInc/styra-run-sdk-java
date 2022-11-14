@@ -1,5 +1,8 @@
 package com.styra.run;
 
+import com.styra.run.session.InputTransformer;
+import com.styra.run.session.Session;
+import com.styra.run.session.SessionManager;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -10,21 +13,23 @@ import java.io.IOException;
  *
  */
 public final class ProxyServlet extends StyraRunServlet {
-    private volatile Proxy<Proxy.Session> proxy = null;
+    private volatile Proxy<Session> proxy = null;
 
     public ProxyServlet() {
         super();
     }
 
-    private ProxyServlet(StyraRun styraRun, SessionManager<Proxy.Session> sessionManager, Proxy.InputTransformer<Proxy.Session> inputTransformer) {
+    private ProxyServlet(StyraRun styraRun, SessionManager<Session> sessionManager, InputTransformer<Session> inputTransformer) {
         super(styraRun, sessionManager, inputTransformer);
     }
 
-    public static <S extends Proxy.Session> ProxyServlet from(StyraRun styraRun, SessionManager<S> sessionManager, Proxy.InputTransformer<S> inputTransformer) {
+    public static <S extends Session> ProxyServlet from(StyraRun styraRun,
+                                                        SessionManager<S> sessionManager,
+                                                        InputTransformer<S> inputTransformer) {
         //noinspection unchecked
         return new ProxyServlet(styraRun,
-                (SessionManager<Proxy.Session>) sessionManager,
-                (Proxy.InputTransformer<Proxy.Session>) inputTransformer);
+                (SessionManager<Session>) sessionManager,
+                (InputTransformer<Session>) inputTransformer);
     }
 
     @Override
@@ -32,9 +37,9 @@ public final class ProxyServlet extends StyraRunServlet {
             throws ServletException, IOException {
         StyraRun styraRun = getStyraRun();
         Json json = styraRun.getJson();
-        SessionManager<Proxy.Session> sessionManager = getSessionManager();
+        SessionManager<Session> sessionManager = getSessionManager();
 
-        Proxy<Proxy.Session> proxy = getProxy();
+        Proxy<Session> proxy = getProxy();
 
         handleAsync(request, response, (body, out, async) -> {
             BatchQuery query = BatchQuery.fromMap(json.toMap(body));
@@ -49,9 +54,9 @@ public final class ProxyServlet extends StyraRunServlet {
         });
     }
 
-    private Proxy<Proxy.Session> getProxy() throws ServletException {
+    private Proxy<Session> getProxy() throws ServletException {
         if (proxy == null) {
-            Proxy.InputTransformer<Proxy.Session> inputTransformer = getInputTransformer();
+            InputTransformer<Session> inputTransformer = getInputTransformer();
             proxy = new Proxy<>(styraRun, inputTransformer);
         }
         return proxy;
