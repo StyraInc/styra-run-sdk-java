@@ -5,6 +5,7 @@ import com.styra.run.StyraRun;
 import com.styra.run.StyraRunException;
 import com.styra.run.utils.Futures;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -56,6 +57,7 @@ public class RbacManager {
                 .thenApply((Void) -> null);
     }
 
+    // TODO: Sort by user-id
     public CompletableFuture<List<UserBinding>> listUserBindings(AuthorizationInput authzInput) {
         return styraRun.check(AUTHZ_PATH, authzInput)
                 .thenApply(this::assertAllowed)
@@ -74,6 +76,20 @@ public class RbacManager {
                                 .collect(Collectors.toList()), (e) -> new StyraRunException("Failed to parse user bindings", e)));
     }
 
+    // FIXME: Should we allow request failures for individual user?
+    // TODO: Do batch data-requests when supported by back-end
+    /**
+     * Get the {@link UserBinding} for each {@link User} in <code>users</code>.
+     *
+     * The returned list of bindings will maintain the order of <code>users</code>.
+     *
+     * If a user doesn't have associated bindings, the returned {@link UserBinding} entry
+     * will contain an empty list of roles.
+     *
+     * @param users the {@link User users} to retrieve {@link UserBinding user-bindings} for
+     * @param authzInput the session information authorizing the request
+     * @return a list of resolved {@link UserBinding user-bindings}
+     */
     public CompletableFuture<List<UserBinding>> getUserBindings(List<User> users, AuthorizationInput authzInput) {
         return styraRun.check(AUTHZ_PATH, authzInput)
                 .thenApply(this::assertAllowed)
@@ -87,17 +103,21 @@ public class RbacManager {
 
     private CompletableFuture<UserBinding> getUserBinding(String tenant, User user) {
         return styraRun.getData(joinPath(USER_BINDINGS_PATH, tenant, user.getId()))
-                .thenApply((result) -> {
+                .thenApply(Futures.async((result) -> {
                     try {
-                        List<Role> roles = result.getListOf(String.class).stream()
-                                .map(Role::new)
-                                .collect(Collectors.toList());
+                        List<Role> roles;
+                        if (result.hasValue()) {
+                            roles = result.getListOf(String.class).stream()
+                                    .map(Role::new)
+                                    .collect(Collectors.toList());
+                        } else {
+                            roles = Collections.emptyList();
+                        }
                         return new UserBinding(user, roles);
                     } catch (Exception e) {
-                        throw new CompletionException(
-                                new StyraRunException(String.format("Failed to parse user binding for '%s'", user.getId()), e));
+                        throw new StyraRunException(String.format("Failed to parse user binding for '%s'", user.getId()), e);
                     }
-                });
+                }));
     }
 
 

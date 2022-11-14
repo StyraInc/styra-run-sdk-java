@@ -67,6 +67,10 @@ public class BatchQuery implements SerializableAsMap {
             this.path = orThrow(path, () -> new IllegalArgumentException("path must not be null"));
         }
 
+        public Item withInput(Input<?> input) {
+            return new Item(path, input);
+        }
+
         public static Item fromMap(Map<?, ?> map) {
             String path = (String) map.get("path");
             Input<?> input = Null.map(map.get("input"), Input::new);

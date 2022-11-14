@@ -28,8 +28,15 @@ public final class RbacServlet extends StyraRunServlet {
         super();
     }
 
-    public RbacServlet(StyraRun styraRun) {
-        super(styraRun);
+    public RbacServlet(StyraRun styraRun, SessionManager<Proxy.Session> sessionManager, Proxy.InputTransformer<Proxy.Session> inputTransformer) {
+        super(styraRun, sessionManager, inputTransformer);
+    }
+
+    static <S extends Proxy.Session> RbacServlet from(StyraRun styraRun, SessionManager<S> sessionManager, Proxy.InputTransformer<S> inputTransformer) {
+        //noinspection unchecked
+        return new RbacServlet(styraRun,
+                (SessionManager<Proxy.Session>) sessionManager,
+                (Proxy.InputTransformer<Proxy.Session>) inputTransformer);
     }
 
     @Override
@@ -65,10 +72,6 @@ public final class RbacServlet extends StyraRunServlet {
             return new RbacManager(getStyraRun());
         }
 
-        String toJson(Object value) throws ServletException, IOException {
-            return getStyraRun().getJson().from(value);
-        }
-
         String getPath(HttpServletRequest request) {
             return firstNonNull(request.getPathInfo(), "/")
                     .replaceFirst(pathPrefix, "");
@@ -76,9 +79,11 @@ public final class RbacServlet extends StyraRunServlet {
 
         AuthorizationInput getAuthzInput(HttpServletRequest request) throws AuthorizationException {
             try {
-                return AuthorizationInput.from(getInputTransformer().transform(Input.empty(), RbacManager.AUTHZ_PATH, request));
+                Proxy.Session session = getSessionManager().getSession(request);
+                return AuthorizationInput.from(getInputTransformer()
+                        .transform(Input.empty(), RbacManager.AUTHZ_PATH, session));
             } catch (Throwable t) {
-                throw new AuthorizationException("", t);
+                throw new AuthorizationException("Failed to form authorization input from session data", t);
             }
         }
     }

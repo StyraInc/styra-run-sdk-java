@@ -255,10 +255,11 @@ class RbacManagerSpec extends Specification {
         def fetchedBindings = rbacManager.getUserBindings(userList, authzInput).get()
 
         then: 'they are as expected'
-        fetchedBindings.size() == bindings.size()
+        fetchedBindings.size() == users.size()
         fetchedBindings.forEach { binding ->
-            assert bindings.containsKey(binding.user.id)
-            assert bindings[binding.user.id] == binding.roles.collect { it.name }
+            if (bindings.containsKey(binding.user.id)) {
+                assert bindings[binding.user.id] == binding.roles.collect { it.name }
+            }
         }
 
         and: 'the expected calls to the Styra Run API were made'
@@ -270,7 +271,9 @@ class RbacManagerSpec extends Specification {
         'AcmeCorp' | ['alice']                   | ['alice': []]
         'AcmeCorp' | ['alice']                   | ['alice': ['foo']]
         'LexCorp'  | ['alice', 'bob']            | ['alice': ['READER', 'WRITER'], 'bob': []]
+        'LexCorp'  | ['alice', 'bob']            | ['alice': ['READER', 'WRITER'], 'bob': ['foo'], 'charles': ['bar']]
         'LexCorp'  | ['alice', 'bob', 'charles'] | ['alice': ['READER', 'WRITER'], 'bob': ['foo'], 'charles': ['bar']]
+        'LexCorp'  | ['alice', 'bob', 'charles'] | ['alice': ['READER', 'WRITER'], 'charles': ['bar']]
     }
 
     static StyraRun makeStyraRun(ApiClient client, String baseUri, token = 'foobar') {

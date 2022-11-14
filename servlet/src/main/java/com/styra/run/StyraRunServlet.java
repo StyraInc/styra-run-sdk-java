@@ -21,24 +21,23 @@ import static com.styra.run.utils.Types.cast;
 
 public abstract class StyraRunServlet extends HttpServlet {
     public static final String STYRA_RUN_ATTR = "com.styra.run.styra-run";
+    public static final String SESSION_MANAGER_ATTR = "com.styra.run.session-manager";
     public static final String INPUT_TRANSFORMER_ATTR = "com.styra.run.input-transformer";
-    private final InputTransformer DEFAULT_INPUT_TRANSFORMER = DefaultSessionInputStrategies.COOKIE;
+    private static final SessionManager<Proxy.Session> DEFAULT_SESSION_MANAGER = SessionManager.noSessionManager();
+    private static final Proxy.InputTransformer<Proxy.Session> DEFAULT_INPUT_TRANSFORMER = (input, path, session) -> input;
 
     protected final StyraRun styraRun;
-    private final InputTransformer inputTransformer;
+    private volatile SessionManager<Proxy.Session> sessionManager;
+    private volatile Proxy.InputTransformer<Proxy.Session> inputTransformer;
+
 
     public StyraRunServlet() {
-        this.styraRun = null;
-        this.inputTransformer = null;
+        this(null, null, null);
     }
 
-    public StyraRunServlet(StyraRun styraRun) {
+    protected StyraRunServlet(StyraRun styraRun, SessionManager<Proxy.Session> sessionManager, Proxy.InputTransformer<Proxy.Session> inputTransformer) {
         this.styraRun = styraRun;
-        this.inputTransformer = null;
-    }
-
-    public StyraRunServlet(StyraRun styraRun, InputTransformer inputTransformer) {
-        this.styraRun = styraRun;
+        this.sessionManager = sessionManager;
         this.inputTransformer = inputTransformer;
     }
 
@@ -51,13 +50,26 @@ public abstract class StyraRunServlet extends HttpServlet {
                 .orElseThrow(() -> new ServletException(String.format("No '%s' attribute on servlet context", STYRA_RUN_ATTR)));
     }
 
-    protected InputTransformer getInputTransformer() throws ServletException {
-        if (inputTransformer != null) {
-            return inputTransformer;
+    protected SessionManager<Proxy.Session> getSessionManager() throws ServletException {
+        if (sessionManager == null) {
+
+            //noinspection unchecked
+            sessionManager = Optional.ofNullable(cast(SessionManager.class, getServletConfig().getServletContext().getAttribute(SESSION_MANAGER_ATTR),
+                            () -> new ServletException(String.format("'%s' attribute on servlet context was not SessionManager type", INPUT_TRANSFORMER_ATTR))))
+                    .orElse(DEFAULT_SESSION_MANAGER);
         }
-        return Optional.ofNullable(cast(InputTransformer.class, getServletConfig().getServletContext().getAttribute("input-supplier"),
-                        () -> new ServletException(String.format("'%s' attribute on servlet context was not InputSupplier type", INPUT_TRANSFORMER_ATTR))))
-                .orElse(DEFAULT_INPUT_TRANSFORMER);
+        return (SessionManager<Proxy.Session>) sessionManager;
+    }
+
+    protected Proxy.InputTransformer<Proxy.Session> getInputTransformer() throws ServletException {
+        if (inputTransformer == null) {
+
+            //noinspection unchecked
+            inputTransformer = Optional.ofNullable(cast(Proxy.InputTransformer.class, getServletConfig().getServletContext().getAttribute(INPUT_TRANSFORMER_ATTR),
+                    () -> new ServletException(String.format("'%s' attribute on servlet context was not InputSupplier type", INPUT_TRANSFORMER_ATTR))))
+                    .orElse(DEFAULT_INPUT_TRANSFORMER);
+        }
+        return inputTransformer;
     }
 
     protected void handleAsync(HttpServletRequest request, HttpServletResponse response, OnReady onReady) throws IOException {
