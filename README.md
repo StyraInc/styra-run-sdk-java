@@ -5,7 +5,7 @@
 ### Gradle
 
 ```gradle
-implementation 'com.styra.run:styra-run-sdk:0.0.1'
+implementation 'com.styra.run:styra-run-sdk:0.1.0'
 ```
 
 ### Apache Maven
@@ -14,7 +14,7 @@ implementation 'com.styra.run:styra-run-sdk:0.0.1'
 <dependency>
   <groupId>com.styra.run</groupId>
   <artifactId>styra-run-sdk</artifactId>
-  <version>0.0.1</version>
+  <version>0.1.0</version>
 </dependency>
 ```
 
@@ -83,11 +83,93 @@ styraRun.deleteData("foo/bar").join();
 
 ### Proxy
 
-TODO
+Functionality for proxying queries is provided by the `Proxy` class in the `styra-run-sdk-core` library, and the `ProxyServlet` in the `styra-run-sdk-servlet` library.
+These facilities provide extra security in the form of input- and output sanitization. Therefore, their use is recommended if policy queries and RBAC management is desirable in a client-/front-end component, such as a browser app.
+
+#### Using the proxy servlet
+
+The `ProxyServlet` is a Jakarta Servlet that makes use of the `Proxy` helper.
+
+```gradle
+implementation 'com.styra.run:styra-run-sdk-servlet:0.1.0'
+```
+
+Direct instantiation:
+
+```java
+var root = new ServletContextHandler();
+var proxyHolder = new ServletHolder();
+var sessionManager = new CookieSessionManager("user");
+var inputTransformer = new TenantInputTransformer();
+proxyHolder.setServlet(ProxyServlet.from(styraRun, sessionManager, inputTransformer));
+root.addServlet(proxyHolder, "/api/authz");
+```
+
+Indirect instantiation:
+
+```java
+var root = new ServletContextHandler();
+root.setAttribute(StyraRunServlet.STYRA_RUN_ATTR, styraRun);
+root.setAttribute(StyraRunServlet.SESSION_MANAGER_ATTR, sessionManager);
+root.setAttribute(StyraRunServlet.INPUT_TRANSFORMER_ATTR, inputTransformer);
+root.addServlet(ProxyServlet.class, "/api/authz");
+```
+
+#### Using the Proxy helper directly
+
+In cases where the provided Servlet implementation doesn't fit your needs, the `Proxy` helper can be used directly.
+
+```java
+var proxy = Proxy.builder(styraRun).build();
+var session = new TenantSession("alice", "acmecorp");
+var query = new BatchQuery()
+        .withQuery("/my/policy/rule", MapInput.of("foo", "bar"))
+        .withQuery("/my/other/policy/rule");
+var result = proxy.proxy(query, session).join();
+```
 
 ### RBAC Management
 
-TODO
+Functionality for RBAC management is provided by the `RbacManager` class in the `styra-run-sdk-core` library, and the `RbacServlet` in the `styra-run-sdk-servlet` library.
+The RBAC-manager, and -servlet, provides functionality for getting, upserting, and deleting user bindings.
+
+#### Using the RBAC Servlet
+
+```gradle
+implementation 'com.styra.run:styra-run-sdk-servlet:0.1.0'
+```
+
+Direct instantiation:
+
+```java
+var root = new ServletContextHandler();
+var rbacHolder = new ServletHolder();
+var sessionManager = new CookieSessionManager("user");
+var inputTransformer = new TenantInputTransformer();
+rbacHolder.setServlet(RbacServlet.from(styraRun, sessionManager, inputTransformer));
+root.addServlet(rbacHolder, "/api/rbac/*")
+```
+
+Indirect instantiation:
+
+```java
+var root = new ServletContextHandler();
+root.setAttribute(StyraRunServlet.STYRA_RUN_ATTR, styraRun);
+root.setAttribute(StyraRunServlet.SESSION_MANAGER_ATTR, sessionManager);
+root.setAttribute(StyraRunServlet.INPUT_TRANSFORMER_ATTR, inputTransformer);
+root.addServlet(RbacServlet.class, "/api/rbac/*");
+```
+
+#### Using the RBAC Manager directly
+
+In cases where the provided Servlet implementation doesn't fit your needs, the `RbacManager` can be used directly.
+
+```java
+var rbac = new RbacManager(styraRun);
+var session = new TenantSession("alice", "acmecorp");
+var user = new User("bob");
+var userBinding = rbac.getUserBinding(user, session).join();
+```
 
 ## Project Structure
 
@@ -106,7 +188,7 @@ the builder.
 
 This library adds support for exposing [Proxy](#proxy) and [RBAC management](#rbac-management) endpoints via Jetty Servlets.
 
-### JSON
+## JSON
 
 The Styra Run Java SDK has native JSON support through [jackson-core](https://github.com/FasterXML/jackson-core).
 Should custom JSON serialization/deserialization be required, an instance of a custom implementation of the 
