@@ -10,7 +10,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 /**
+ * A servlet wrapping the functionality provided by {@link Proxy}.
  *
+ * @see StyraRunServlet
  */
 public final class ProxyServlet extends StyraRunServlet {
     private volatile Proxy<Session> proxy = null;
@@ -19,7 +21,9 @@ public final class ProxyServlet extends StyraRunServlet {
         super();
     }
 
-    private ProxyServlet(StyraRun styraRun, SessionManager<Session> sessionManager, InputTransformer<Session> inputTransformer) {
+    private ProxyServlet(StyraRun styraRun,
+                         SessionManager<Session> sessionManager,
+                         InputTransformer<Session> inputTransformer) {
         super(styraRun, sessionManager, inputTransformer);
     }
 

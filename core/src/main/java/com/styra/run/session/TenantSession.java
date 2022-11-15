@@ -12,6 +12,9 @@ import static com.styra.run.utils.Arguments.require;
 import static com.styra.run.utils.Arguments.requireNotEmpty;
 import static com.styra.run.utils.Null.firstNonNull;
 
+/**
+ * A tenant-session containing a required tenant identifier, and an optional subject identifier.
+ */
 public class TenantSession extends MapInput<String, Object> implements Session {
     private static final String SUBJECT_KEY = "subject";
     private static final String TENANT_KEY = "tenant";

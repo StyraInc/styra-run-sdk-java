@@ -7,6 +7,7 @@ import com.styra.run.session.TenantSession;
 import com.styra.run.utils.Futures;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -16,6 +17,9 @@ import static com.styra.run.utils.Futures.async;
 import static com.styra.run.utils.Types.castList;
 import static com.styra.run.utils.Url.joinPath;
 
+/**
+ * Manager of RBAC bindings maintained in Styra Run.
+ */
 public class RbacManager {
     public static final String AUTHZ_PATH = "rbac/manage/allow";
     private static final String ROLES_PATH = "rbac/roles";
@@ -27,6 +31,12 @@ public class RbacManager {
         this.styraRun = styraRun;
     }
 
+    /**
+     * Get all roles for the tenant in the provided {@link TenantSession session}.
+     *
+     * @param session the {@link TenantSession session} information authorizing the request for a given tenant
+     * @return a {@link CompletableFuture} that completes to a list of roles
+     */
     public CompletableFuture<List<String>> getRoles(TenantSession session) {
         return styraRun.check(AUTHZ_PATH, session)
                 .thenApply(this::assertAllowed)
@@ -34,22 +44,43 @@ public class RbacManager {
                 .thenApply(async((result) -> result.getListOf(String.class)));
     }
 
+    /**
+     * Get the {@link UserBinding user-binding} for the provided {@link User}.
+     *
+     * @param user the {@link User} to get the {@link UserBinding} for
+     * @param session the {@link TenantSession session} information authorizing the request for a given tenant
+     * @return a {@link CompletableFuture} for the action
+     */
     public CompletableFuture<UserBinding> getUserBinding(User user, TenantSession session) {
         return styraRun.check(AUTHZ_PATH, session)
                 .thenApply(this::assertAllowed)
                 .thenCompose((Void) -> getUserBinding(session.getTenant(), user));
     }
 
-    public CompletableFuture<Void> setUserBinding(User user, List<Role> roles, TenantSession session) {
-        List<String> data = roles.stream().map(Role::getName).collect(Collectors.toList());
+    /**
+     * Set the {@link UserBinding user-binding} for a {@link User}.
+     *
+     * @param userBinding the {@link UserBinding} to set
+     * @param session the {@link TenantSession session} information authorizing the request for a given tenant
+     * @return a {@link CompletableFuture} for the action
+     */
+    public CompletableFuture<Void> setUserBinding(UserBinding userBinding, TenantSession session) {
+        List<String> data = userBinding.getRoles().stream().map(Role::getName).collect(Collectors.toList());
         return styraRun.check(AUTHZ_PATH, session)
                 .thenApply(this::assertAllowed)
                 .thenCompose((Void) -> styraRun.putData(
-                        joinPath(USER_BINDINGS_PATH, session.getTenant(), user.getId()),
+                        joinPath(USER_BINDINGS_PATH, session.getTenant(), userBinding.getUser().getId()),
                         data))
                 .thenApply((Void) -> null);
     }
 
+    /**
+     * Set the user-binding for a {@link User}.
+     *
+     * @param user the {@link User} to delete the user-binding for
+     * @param session the {@link TenantSession session} information authorizing the request for a given tenant
+     * @return a {@link CompletableFuture} for the action
+     */
     public CompletableFuture<Void> deleteUserBinding(User user, TenantSession session) {
         return styraRun.check(AUTHZ_PATH, session)
                 .thenApply(this::assertAllowed)
@@ -58,7 +89,14 @@ public class RbacManager {
                 .thenApply((Void) -> null);
     }
 
-    // TODO: Sort by user-id
+    /**
+     * Lists all {@link UserBinding user-bindings} for the tenant in the provided {@link TenantSession session}.
+     * <p>
+     * The returned list of user-bindings is sorted lexicographically by {@link User#getId() id}.
+     *
+     * @param session the {@link TenantSession session} information authorizing the request for a given tenant
+     * @return a {@link CompletableFuture} that completes to a list of all {@link UserBinding user-bindings} for the tenant
+     */
     public CompletableFuture<List<UserBinding>> listUserBindings(TenantSession session) {
         return styraRun.check(AUTHZ_PATH, session)
                 .thenApply(this::assertAllowed)
@@ -74,23 +112,24 @@ public class RbacManager {
                                             .collect(Collectors.toList());
                                     return new UserBinding(user, roles);
                                 })
+                                .sorted(Comparator.comparing(entry -> entry.getUser().getId()))
                                 .collect(Collectors.toList()), (e) -> new StyraRunException("Failed to parse user bindings", e)));
     }
 
-    // FIXME: Should we allow request failures for individual user?
-    // TODO: Do batch data-requests when supported by back-end
     /**
-     * Get the {@link UserBinding} for each {@link User} in <code>users</code>.
-     *
-     * The returned list of bindings will maintain the order of <code>users</code>.
-     *
+     * Get the {@link UserBinding user-binding} for each {@link User} in <code>users</code>.
+     * <p>
+     * The returned list of bindings will retain the order of <code>users</code>.
+     * <p>
      * If a user doesn't have associated bindings, the returned {@link UserBinding} entry
      * will contain an empty list of roles.
      *
-     * @param users the {@link User users} to retrieve {@link UserBinding user-bindings} for
-     * @param session the session information authorizing the request
-     * @return a list of resolved {@link UserBinding user-bindings}
+     * @param users   the {@link User users} to retrieve {@link UserBinding user-bindings} for
+     * @param session the {@link TenantSession session} information authorizing the request for a given tenant
+     * @return a {@link CompletableFuture} that completes to a list of resolved {@link UserBinding user-bindings}
      */
+    // FIXME: Should we allow request failures for individual user?
+    // TODO: Do batch data-requests when supported by back-end
     public CompletableFuture<List<UserBinding>> getUserBindings(List<User> users, TenantSession session) {
         return styraRun.check(AUTHZ_PATH, session)
                 .thenApply(this::assertAllowed)

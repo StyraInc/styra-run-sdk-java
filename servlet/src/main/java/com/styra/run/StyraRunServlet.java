@@ -23,12 +23,35 @@ import java.util.concurrent.CompletionException;
 
 import static com.styra.run.utils.Types.cast;
 
+/**
+ * An abstract, asynchronous servlet implemented by all Styra Run SDK servlets.
+ *
+ * If the servlet isn't directly instantiated by constructor, the following services can be injected by attribute:
+ *
+ * <lu>
+ *     <li>
+ *          {@link #STYRA_RUN_ATTR}: {@link StyraRun}
+ *          <br>
+ *          Required.
+ *     </li>
+ *     <li>
+ *          {@link #SESSION_MANAGER_ATTR}: {@link SessionManager}
+ *          <br>
+ *          Optional; {@link SessionManager#noSessionManager()} is used by default.
+ *     </li>
+ *     <li>
+ *          {@link #INPUT_TRANSFORMER_ATTR}: {@link InputTransformer}
+ *          <br>
+ *          Optional; {@link InputTransformer#identity()} is used by default.
+ *     </li>
+ * </lu>
+ */
 public abstract class StyraRunServlet extends HttpServlet {
     public static final String STYRA_RUN_ATTR = "com.styra.run.styra-run";
     public static final String SESSION_MANAGER_ATTR = "com.styra.run.session-manager";
     public static final String INPUT_TRANSFORMER_ATTR = "com.styra.run.input-transformer";
     private static final SessionManager<Session> DEFAULT_SESSION_MANAGER = SessionManager.noSessionManager();
-    private static final InputTransformer<Session> DEFAULT_INPUT_TRANSFORMER = (input, path, session) -> input;
+    private static final InputTransformer<Session> DEFAULT_INPUT_TRANSFORMER = InputTransformer.identity();
 
     protected final StyraRun styraRun;
     private volatile SessionManager<Session> sessionManager;
