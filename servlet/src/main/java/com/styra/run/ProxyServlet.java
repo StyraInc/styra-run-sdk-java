@@ -57,7 +57,9 @@ public final class ProxyServlet extends StyraRunServlet {
     private Proxy<Session> getProxy() throws ServletException {
         if (proxy == null) {
             InputTransformer<Session> inputTransformer = getInputTransformer();
-            proxy = new Proxy<>(styraRun, inputTransformer);
+            proxy = Proxy.builder(styraRun)
+                    .inputTransformer(inputTransformer)
+                    .build();
         }
         return proxy;
     }

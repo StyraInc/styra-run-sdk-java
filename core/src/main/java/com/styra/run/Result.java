@@ -190,6 +190,14 @@ public class Result<T> implements SerializableAsMap {
                         }))));
     }
 
+    boolean isValueType(Class<?> type) {
+        return type.isInstance(value);
+    }
+
+    boolean isBooleanValue() {
+        return isValueType(Boolean.class);
+    }
+
     public Map<String, ?> getAttributes() {
         return attributes;
     }

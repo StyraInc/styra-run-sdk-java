@@ -1,12 +1,16 @@
 package com.styra.run;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
 import static com.styra.run.utils.Null.map;
 
 public class ApiError {
+    private static final String CODE_KEY = "code";
+    private static final String MESSAGE_KEY = "message";
     private static final ApiError EMPTY = new ApiError(null, null);
+
     private final String code;
     private final String message;
 
@@ -20,8 +24,8 @@ public class ApiError {
     }
 
     public static ApiError fromMap(Map<String, ?> map) {
-        String code = map(map.get("code"), String::valueOf);
-        String message = map(map.get("message"), String::valueOf);
+        String code = map(map.get(CODE_KEY), String::valueOf);
+        String message = map(map.get(MESSAGE_KEY), String::valueOf);
         if (code != null || message != null) {
             return new ApiError(code, message);
         }
@@ -40,6 +44,13 @@ public class ApiError {
 
     public String getMessage() {
         return message;
+    }
+
+    public Result<Void> toResult() {
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(CODE_KEY, code);
+        attributes.put(MESSAGE_KEY, message);
+        return new Result<>(null, attributes);
     }
 
     @Override
