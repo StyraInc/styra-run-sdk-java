@@ -7,6 +7,8 @@ import com.styra.run.discovery.GatewaySelectionStrategy;
 import com.styra.run.discovery.GatewaySelector;
 import com.styra.run.discovery.SimpleGatewaySelectionStrategy;
 import com.styra.run.discovery.StaticGatewaySelector;
+import com.styra.run.exceptions.StyraRunException;
+import com.styra.run.exceptions.StyraRunHttpException;
 import com.styra.run.rbac.RbacManager;
 import com.styra.run.spi.ApiClientFactory;
 import com.styra.run.utils.Futures;

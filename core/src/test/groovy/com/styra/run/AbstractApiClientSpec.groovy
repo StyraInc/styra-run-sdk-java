@@ -1,5 +1,6 @@
 package com.styra.run
 
+import com.styra.run.exceptions.RetryException
 import okhttp3.Headers
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -49,7 +50,8 @@ abstract class AbstractApiClientSpec extends Specification {
                 .apiClient
 
         then: 'the client used is a BlockingApiClient'
-        expectedType.isInstance(client)
+        client instanceof LoggingApiClient
+        expectedType.isInstance((client as LoggingApiClient).delegate)
     }
 
     @Unroll

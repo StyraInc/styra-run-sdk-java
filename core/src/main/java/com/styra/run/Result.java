@@ -1,5 +1,6 @@
 package com.styra.run;
 
+import com.styra.run.exceptions.StyraRunException;
 import com.styra.run.utils.Null;
 
 import java.util.Collection;

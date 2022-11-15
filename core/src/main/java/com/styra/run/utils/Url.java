@@ -1,6 +1,6 @@
 package com.styra.run.utils;
 
-import com.styra.run.StyraRunException;
+import com.styra.run.exceptions.StyraRunException;
 
 import java.net.URI;
 import java.net.URISyntaxException;

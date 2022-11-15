@@ -1,4 +1,7 @@
-package com.styra.run;
+package com.styra.run.exceptions;
+
+import com.styra.run.ApiError;
+import com.styra.run.exceptions.StyraRunException;
 
 public class StyraRunHttpException extends StyraRunException {
     // FIXME: Use ApiClient.ApiResponse instead?

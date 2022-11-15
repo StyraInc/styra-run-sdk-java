@@ -1,5 +1,6 @@
 package com.styra.run;
 
+import com.styra.run.exceptions.StyraRunException;
 import com.styra.run.session.InputTransformer;
 import com.styra.run.session.Session;
 import org.slf4j.Logger;

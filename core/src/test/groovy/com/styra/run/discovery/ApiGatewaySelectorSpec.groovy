@@ -3,8 +3,8 @@ package com.styra.run.discovery
 import com.styra.run.ApiError
 import com.styra.run.ApiResponse
 import com.styra.run.DefaultJson
-import com.styra.run.StyraRunException
-import com.styra.run.StyraRunHttpException
+import com.styra.run.exceptions.StyraRunException
+import com.styra.run.exceptions.StyraRunHttpException
 import com.styra.run.test.CountingApiClient
 import spock.lang.Specification
 import spock.lang.Unroll

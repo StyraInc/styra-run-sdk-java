@@ -1,4 +1,4 @@
-package com.styra.run;
+package com.styra.run.exceptions;
 
 public class StyraRunException extends Exception {
     public StyraRunException(String message) {

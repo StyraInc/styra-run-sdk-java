@@ -2,7 +2,6 @@ package com.styra.run.session;
 
 import com.styra.run.Input;
 import com.styra.run.MapInput;
-import com.styra.run.utils.Arguments;
 import com.styra.run.utils.Types;
 
 import java.util.Collections;

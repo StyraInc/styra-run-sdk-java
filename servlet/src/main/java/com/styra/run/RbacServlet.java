@@ -1,5 +1,6 @@
 package com.styra.run;
 
+import com.styra.run.exceptions.AuthorizationException;
 import com.styra.run.session.SessionManager;
 import com.styra.run.session.TenantSession;
 import com.styra.run.rbac.RbacManager;

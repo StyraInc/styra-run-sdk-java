@@ -16,6 +16,10 @@ public class LoggingApiClient implements ApiClient {
         this.delegate = delegate;
     }
 
+    public ApiClient getDelegate() {
+        return delegate;
+    }
+
     @Override
     public CompletableFuture<ApiResponse> request(Method method, URI uri, Map<String, String> headers, String body) {
         UUID uuid = UUID.randomUUID();

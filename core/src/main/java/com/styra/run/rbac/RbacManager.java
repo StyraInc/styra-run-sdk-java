@@ -1,8 +1,8 @@
 package com.styra.run.rbac;
 
-import com.styra.run.AuthorizationException;
+import com.styra.run.exceptions.AuthorizationException;
 import com.styra.run.StyraRun;
-import com.styra.run.StyraRunException;
+import com.styra.run.exceptions.StyraRunException;
 import com.styra.run.session.TenantSession;
 import com.styra.run.utils.Futures;
 
