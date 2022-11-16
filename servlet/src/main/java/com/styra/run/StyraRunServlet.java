@@ -28,7 +28,7 @@ import static com.styra.run.utils.Types.cast;
  *
  * If the servlet isn't directly instantiated by constructor, the following services can be injected by attribute:
  *
- * <lu>
+ * <ul>
  *     <li>
  *          {@link #STYRA_RUN_ATTR}: {@link StyraRun}
  *          <br>
@@ -44,7 +44,7 @@ import static com.styra.run.utils.Types.cast;
  *          <br>
  *          Optional; {@link InputTransformer#identity()} is used by default.
  *     </li>
- * </lu>
+ * </ul>
  */
 public abstract class StyraRunServlet extends HttpServlet {
     public static final String STYRA_RUN_ATTR = "com.styra.run.styra-run";
