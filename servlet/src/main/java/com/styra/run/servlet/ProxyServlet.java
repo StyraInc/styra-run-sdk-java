@@ -1,8 +1,12 @@
-package com.styra.run;
+package com.styra.run.servlet;
 
+import com.styra.run.BatchQuery;
+import com.styra.run.Json;
+import com.styra.run.Proxy;
+import com.styra.run.StyraRun;
 import com.styra.run.session.InputTransformer;
 import com.styra.run.session.Session;
-import com.styra.run.session.SessionManager;
+import com.styra.run.servlet.session.SessionManager;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

@@ -1,5 +1,7 @@
-package com.styra.run;
+package com.styra.run.servlet;
 
+import com.styra.run.Input;
+import com.styra.run.MapInput;
 import com.styra.run.utils.Types;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;

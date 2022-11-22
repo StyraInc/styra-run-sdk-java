@@ -1,5 +1,6 @@
-package com.styra.run.session;
+package com.styra.run.servlet.session;
 
+import com.styra.run.session.Session;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**

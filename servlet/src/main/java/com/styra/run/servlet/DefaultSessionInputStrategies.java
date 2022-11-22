@@ -1,4 +1,4 @@
-package com.styra.run;
+package com.styra.run.servlet;
 
 public class DefaultSessionInputStrategies {
     public static final InputTransformer COOKIE = new CookieSessionInputStrategy("user");

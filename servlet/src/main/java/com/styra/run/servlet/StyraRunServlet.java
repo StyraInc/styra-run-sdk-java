@@ -1,9 +1,11 @@
-package com.styra.run;
+package com.styra.run.servlet;
 
+import com.styra.run.ApiError;
+import com.styra.run.StyraRun;
 import com.styra.run.exceptions.AuthorizationException;
+import com.styra.run.servlet.session.SessionManager;
 import com.styra.run.session.InputTransformer;
 import com.styra.run.session.Session;
-import com.styra.run.session.SessionManager;
 import jakarta.servlet.AsyncContext;
 import jakarta.servlet.ReadListener;
 import jakarta.servlet.ServletException;
@@ -21,11 +23,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
 
+import static com.styra.run.ApiError.INTERNAL_ERROR_CODE;
+import static com.styra.run.ApiError.UNAUTHORIZED_CODE;
 import static com.styra.run.utils.Types.cast;
 
 /**
  * An abstract, asynchronous servlet implemented by all Styra Run SDK servlets.
- *
+ * <p>
  * If the servlet isn't directly instantiated by constructor, the following services can be injected by attribute:
  *
  * <ul>
@@ -85,7 +89,7 @@ public abstract class StyraRunServlet extends HttpServlet {
                             () -> new ServletException(String.format("'%s' attribute on servlet context was not SessionManager type", INPUT_TRANSFORMER_ATTR))))
                     .orElse(DEFAULT_SESSION_MANAGER);
         }
-        return (SessionManager<Session>) sessionManager;
+        return sessionManager;
     }
 
     protected InputTransformer<Session> getInputTransformer() throws ServletException {
@@ -93,7 +97,7 @@ public abstract class StyraRunServlet extends HttpServlet {
 
             //noinspection unchecked
             inputTransformer = Optional.ofNullable(cast(InputTransformer.class, getServletConfig().getServletContext().getAttribute(INPUT_TRANSFORMER_ATTR),
-                    () -> new ServletException(String.format("'%s' attribute on servlet context was not InputSupplier type", INPUT_TRANSFORMER_ATTR))))
+                            () -> new ServletException(String.format("'%s' attribute on servlet context was not InputSupplier type", INPUT_TRANSFORMER_ATTR))))
                     .orElse(DEFAULT_INPUT_TRANSFORMER);
         }
         return inputTransformer;
@@ -192,15 +196,24 @@ public abstract class StyraRunServlet extends HttpServlet {
             return;
         }
 
+        getServletContext().log(message, t);
+        if (t instanceof AuthorizationException) {
+            writeErrorJsonResponse(new ApiError(UNAUTHORIZED_CODE, "Unauthorized"),
+                    response, HttpServletResponse.SC_FORBIDDEN, context);
+        } else {
+            writeErrorJsonResponse(new ApiError(INTERNAL_ERROR_CODE, "Internal server error"),
+                    response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, context);
+        }
+    }
+
+    private void writeErrorJsonResponse(ApiError error, HttpServletResponse response, int statusCode, AsyncContext context) {
         try {
-            getServletContext().log(message, t);
-            if (t instanceof AuthorizationException) {
-                response.sendError(HttpServletResponse.SC_FORBIDDEN);
-            } else {
-                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            }
-        } catch (IOException e) {
-            getServletContext().log("Error", e);
+            response.setStatus(statusCode);
+            response.setContentType("application/json");
+            response.getOutputStream()
+                    .write(getStyraRun().getJson().from(error.toMap()).getBytes(StandardCharsets.UTF_8));
+        } catch (IOException | ServletException e) {
+            getServletContext().log("Failed to send JSON error response", e);
         } finally {
             context.complete();
         }
@@ -212,7 +225,7 @@ public abstract class StyraRunServlet extends HttpServlet {
             response.setContentType("application/json");
             out.write(getStyraRun().getJson().from(data).getBytes(StandardCharsets.UTF_8));
         } catch (IOException | ServletException e) {
-            handleError("Failed to marshal JSON response", e, context, response);
+            handleError("Failed to send JSON response", e, context, response);
         } finally {
             context.complete();
         }

@@ -1,5 +1,7 @@
 package com.styra.run;
 
+import com.styra.run.utils.Null;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,6 +14,11 @@ public class InputContainer implements SerializableAsMap {
 
     public Input<?> getInput() {
         return input;
+    }
+
+    public static InputContainer fromMap(Map<?, ?> map) {
+        Input<?> input = Null.map(map.get("input"), Input::new);
+        return new InputContainer(input);
     }
 
     @Override

@@ -1,5 +1,6 @@
-package com.styra.run.session;
+package com.styra.run.servlet.session;
 
+import com.styra.run.session.TenantSession;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -8,7 +9,13 @@ import java.util.Arrays;
 import static java.util.Objects.requireNonNull;
 
 public class CookieSessionManager implements SessionManager<TenantSession> {
+    public static final String DEFAULT_COOKIE_NAME = "user";
+
     private final String cookieName;
+
+    public CookieSessionManager() {
+        this(DEFAULT_COOKIE_NAME);
+    }
 
     public CookieSessionManager(String cookieName) {
         this.cookieName = requireNonNull(cookieName, "cookieName must not be null");

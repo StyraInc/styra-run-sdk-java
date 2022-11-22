@@ -1,0 +1,28 @@
+plugins {
+    id 'java'
+}
+
+group 'com.styra.run'
+version 'unspecified'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation project(':styra-run-sdk')
+    implementation project(':styra-run-sdk-core')
+    implementation project(':styra-run-sdk-servlet')
+    implementation 'org.slf4j:slf4j-api:2.0.3'
+    implementation 'org.eclipse.jetty:jetty-server:11.0.12'
+    implementation 'org.eclipse.jetty:jetty-servlet:11.0.12'
+    implementation 'org.eclipse.jetty:jetty-util:11.0.12'
+    runtimeClasspath 'ch.qos.logback:logback-classic:1.4.4'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+}
+
+test {
+    useJUnitPlatform()
+}

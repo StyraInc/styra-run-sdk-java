@@ -1,5 +1,6 @@
-package com.styra.run;
+package com.styra.run.servlet;
 
+import com.styra.run.Input;
 import jakarta.servlet.http.HttpServletRequest;
 
 @FunctionalInterface

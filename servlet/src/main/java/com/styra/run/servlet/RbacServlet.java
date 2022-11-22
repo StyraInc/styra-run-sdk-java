@@ -1,12 +1,16 @@
-package com.styra.run;
+package com.styra.run.servlet;
 
-import com.styra.run.exceptions.AuthorizationException;
-import com.styra.run.rbac.UserBinding;
-import com.styra.run.session.SessionManager;
-import com.styra.run.session.TenantSession;
+import com.styra.run.Input;
+import com.styra.run.Result;
+import com.styra.run.SerializableAsMap;
+import com.styra.run.StyraRun;
 import com.styra.run.rbac.RbacManager;
 import com.styra.run.rbac.Role;
 import com.styra.run.rbac.User;
+import com.styra.run.rbac.UserBinding;
+import com.styra.run.exceptions.AuthorizationException;
+import com.styra.run.servlet.session.SessionManager;
+import com.styra.run.session.TenantSession;
 import com.styra.run.session.InputTransformer;
 import com.styra.run.session.Session;
 import jakarta.servlet.AsyncContext;
@@ -44,9 +48,9 @@ public final class RbacServlet extends StyraRunServlet {
         super(styraRun, sessionManager, inputTransformer);
     }
 
-    static <S extends Session> RbacServlet from(StyraRun styraRun,
-                                                SessionManager<S> sessionManager,
-                                                InputTransformer<S> inputTransformer) {
+    public static <S extends Session> RbacServlet from(StyraRun styraRun,
+                                                       SessionManager<S> sessionManager,
+                                                       InputTransformer<S> inputTransformer) {
         //noinspection unchecked
         return new RbacServlet(styraRun,
                 (SessionManager<Session>) sessionManager,
@@ -79,7 +83,7 @@ public final class RbacServlet extends StyraRunServlet {
             return pathPrefix.equals(path);
         }
 
-        StyraRun getStyraRun() throws ServletException {
+        protected StyraRun getStyraRun() throws ServletException {
             return RbacServlet.this.getStyraRun();
         }
 
