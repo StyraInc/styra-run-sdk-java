@@ -18,7 +18,10 @@ public final class Collections {
                     chunk.add(item);
                 } else {
                     chunks.add(chunk);
-                    currentChunk.set(new LinkedList<>());
+                    chunk = new LinkedList<>();
+                    chunk.add(item);
+                    currentChunk.set(chunk);
+
                 }
             });
             if (!currentChunk.get().isEmpty()) {
