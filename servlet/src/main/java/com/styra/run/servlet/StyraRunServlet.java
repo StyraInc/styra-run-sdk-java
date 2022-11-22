@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
 
+import static com.styra.run.ApiError.BAD_REQUEST_CODE;
 import static com.styra.run.ApiError.INTERNAL_ERROR_CODE;
 import static com.styra.run.ApiError.UNAUTHORIZED_CODE;
 import static com.styra.run.utils.Types.cast;
@@ -200,13 +201,16 @@ public abstract class StyraRunServlet extends HttpServlet {
         if (t instanceof AuthorizationException) {
             writeErrorJsonResponse(new ApiError(UNAUTHORIZED_CODE, "Unauthorized"),
                     response, HttpServletResponse.SC_FORBIDDEN, context);
+        } if (t instanceof BadRequestException) {
+            writeErrorJsonResponse(new ApiError(BAD_REQUEST_CODE, "Bad request"),
+                    response, HttpServletResponse.SC_BAD_REQUEST, context);
         } else {
             writeErrorJsonResponse(new ApiError(INTERNAL_ERROR_CODE, "Internal server error"),
                     response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, context);
         }
     }
 
-    private void writeErrorJsonResponse(ApiError error, HttpServletResponse response, int statusCode, AsyncContext context) {
+    protected void writeErrorJsonResponse(ApiError error, HttpServletResponse response, int statusCode, AsyncContext context) {
         try {
             response.setStatus(statusCode);
             response.setContentType("application/json");

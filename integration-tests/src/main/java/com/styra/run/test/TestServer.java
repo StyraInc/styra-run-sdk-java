@@ -1,8 +1,10 @@
 package com.styra.run.test;
 
-import com.styra.run.servlet.ProxyServlet;
-import com.styra.run.servlet.RbacServlet;
 import com.styra.run.StyraRun;
+import com.styra.run.servlet.ProxyServlet;
+import com.styra.run.servlet.rbac.RbacRolesServlet;
+import com.styra.run.servlet.rbac.RbacUserBindingServlet;
+import com.styra.run.servlet.rbac.RbacUserBindingsServlet;
 import com.styra.run.servlet.session.CookieSessionManager;
 import com.styra.run.session.TenantInputTransformer;
 import org.eclipse.jetty.server.Server;
@@ -22,11 +24,19 @@ public class TestServer {
         var sessionManager = new CookieSessionManager();
         var inputTransformer = new TenantInputTransformer();
 
+//        RbacServletHelper.addRbacServlets(root, "/rbac", styraRun, sessionManager, inputTransformer);
+
+        var rbacRolesServlet = RbacRolesServlet.from(styraRun, sessionManager, inputTransformer);
+        root.addServlet(new ServletHolder(rbacRolesServlet), "/roles");
+
+        var rbacUserBindingsServlet = RbacUserBindingsServlet.from(styraRun, sessionManager, inputTransformer);
+        root.addServlet(new ServletHolder(rbacUserBindingsServlet), "/user_bindings_all");
+
+        var rbacUserBindingServlet = RbacUserBindingServlet.from(styraRun, sessionManager, inputTransformer);
+        root.addServlet(new ServletHolder(rbacUserBindingServlet), "/user_bindings/*");
+
         var proxyServlet = ProxyServlet.from(styraRun, sessionManager, inputTransformer);
         root.addServlet(new ServletHolder(proxyServlet), "/batch_query");
-
-        var rbacServlet = RbacServlet.from(styraRun, sessionManager, inputTransformer);
-        root.addServlet(new ServletHolder(rbacServlet), "/rbac/*");
 
         var queryServlet = new QueryProxyServlet(styraRun);
         root.addServlet(new ServletHolder(queryServlet), "/query/*");

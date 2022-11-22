@@ -8,6 +8,7 @@ import static com.styra.run.utils.Null.ifNotNull;
 import static com.styra.run.utils.Null.map;
 
 public class ApiError {
+    public static final String BAD_REQUEST_CODE = "bad_request";
     public static final String UNAUTHORIZED_CODE = "service_unauthorized";
     public static final String INTERNAL_ERROR_CODE = "internal_error";
 
