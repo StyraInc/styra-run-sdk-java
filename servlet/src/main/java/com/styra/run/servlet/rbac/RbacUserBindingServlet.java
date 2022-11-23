@@ -90,7 +90,7 @@ public class RbacUserBindingServlet extends AbstractRbacServlet {
                     .map(Role::new)
                     .collect(Collectors.toList());
             UserBinding userBinding = new UserBinding(user, roles);
-            rbac.setUserBinding(userBinding, getSession(request))
+            rbac.putUserBinding(userBinding, getSession(request))
                     .thenAccept((Void) -> writeResult(null, response, out, async))
                     .exceptionally((e) -> {
                         handleError(String.format("Failed to DELETE user binding for '%s'", userId), e, async, response);
