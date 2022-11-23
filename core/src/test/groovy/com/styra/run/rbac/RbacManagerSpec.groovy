@@ -128,7 +128,7 @@ class RbacManagerSpec extends Specification {
         def rbacManager = new RbacManager(styraRun)
 
         when: 'binding is set'
-        rbacManager.setUserBinding(new UserBinding(user, roleList), authzInput).get()
+        rbacManager.putUserBinding(new UserBinding(user, roleList), authzInput).get()
 
         then: 'the expected calls to the Styra Run API were made'
         apiClient.assertExhausted()

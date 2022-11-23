@@ -64,7 +64,7 @@ public class RbacManager {
      * @param session the {@link TenantSession session} information authorizing the request for a given tenant
      * @return a {@link CompletableFuture} for the action
      */
-    public CompletableFuture<Void> setUserBinding(UserBinding userBinding, TenantSession session) {
+    public CompletableFuture<Void> putUserBinding(UserBinding userBinding, TenantSession session) {
         List<String> data = userBinding.getRoles().stream().map(Role::getName).collect(Collectors.toList());
         return styraRun.check(AUTHZ_PATH, session)
                 .thenApply(this::assertAllowed)
