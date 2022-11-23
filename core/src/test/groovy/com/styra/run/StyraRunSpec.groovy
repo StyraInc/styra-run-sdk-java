@@ -1,6 +1,7 @@
 package com.styra.run
 
 import com.fasterxml.jackson.jr.ob.JSON
+import com.styra.run.exceptions.StyraRunHttpException
 import com.styra.run.test.CountingApiClient
 import spock.lang.Specification
 import spock.lang.Unroll

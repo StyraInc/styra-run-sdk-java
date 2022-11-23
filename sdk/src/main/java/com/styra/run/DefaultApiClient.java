@@ -1,5 +1,8 @@
 package com.styra.run;
 
+import com.styra.run.exceptions.RetryException;
+import com.styra.run.exceptions.StyraRunException;
+
 import java.net.SocketException;
 import java.net.URI;
 import java.net.http.HttpClient;

@@ -1,5 +1,7 @@
 package com.styra.run;
 
+import com.styra.run.exceptions.RetryException;
+
 import javax.net.ssl.SSLContext;
 import java.net.URI;
 import java.time.Duration;

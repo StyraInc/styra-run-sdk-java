@@ -2,6 +2,8 @@ package com.styra.run;
 
 import com.styra.run.utils.Null;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +15,14 @@ import static java.util.Objects.requireNonNull;
 public class BatchQuery implements SerializableAsMap {
     private final List<Item> items;
     private final Input<?> input;
+
+    public BatchQuery() {
+        this(Collections.emptyList(), null);
+    }
+
+    public BatchQuery(List<Item> items) {
+        this(items, null);
+    }
 
     public BatchQuery(List<Item> items, Input<?> input) {
         requireNonNull(items, "items must not be null");
@@ -26,6 +36,25 @@ public class BatchQuery implements SerializableAsMap {
                 .map((item) -> Item.fromMap((Map<?, ?>) item))
                 .collect(Collectors.toList());
         Input<?> input = Null.map(map.get("input"), Input::new);
+        return new BatchQuery(items, input);
+    }
+
+    public BatchQuery withQuery(String path) {
+        return withQueryItem(new Item(path));
+    }
+
+    public BatchQuery withQuery(String path, Input<?> input) {
+        return withQueryItem(new Item(path, input));
+    }
+
+    public BatchQuery withQueryItem(Item item) {
+        List<Item> items = new ArrayList<>(this.items.size() + 1);
+        items.addAll(this.items);
+        items.add(item);
+        return new BatchQuery(items, input);
+    }
+
+    public BatchQuery withGlobalInput(Input<?> input) {
         return new BatchQuery(items, input);
     }
 
@@ -65,6 +94,10 @@ public class BatchQuery implements SerializableAsMap {
         public Item(String path, Input<?> input) {
             super(input);
             this.path = orThrow(path, () -> new IllegalArgumentException("path must not be null"));
+        }
+
+        public Item withInput(Input<?> input) {
+            return new Item(path, input);
         }
 
         public static Item fromMap(Map<?, ?> map) {

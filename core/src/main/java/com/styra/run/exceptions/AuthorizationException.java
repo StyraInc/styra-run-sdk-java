@@ -1,4 +1,6 @@
-package com.styra.run;
+package com.styra.run.exceptions;
+
+import com.styra.run.exceptions.StyraRunException;
 
 public class AuthorizationException extends StyraRunException {
     public AuthorizationException(String message) {

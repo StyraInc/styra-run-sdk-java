@@ -1,5 +1,6 @@
 package com.styra.run;
 
+import com.styra.run.exceptions.RetryException;
 import com.styra.run.utils.Futures;
 
 import javax.net.ssl.HttpsURLConnection;

@@ -1,24 +1,39 @@
 package com.styra.run;
 
+import com.styra.run.session.InputTransformer;
+import com.styra.run.session.Session;
+import com.styra.run.session.SessionManager;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.stream.Collectors;
 
+/**
+ * A servlet wrapping the functionality provided by {@link Proxy}.
+ *
+ * @see StyraRunServlet
+ */
 public final class ProxyServlet extends StyraRunServlet {
+    private volatile Proxy<Session> proxy = null;
+
     public ProxyServlet() {
         super();
     }
 
-    public ProxyServlet(StyraRun styraRun) {
-        super(styraRun);
+    private ProxyServlet(StyraRun styraRun,
+                         SessionManager<Session> sessionManager,
+                         InputTransformer<Session> inputTransformer) {
+        super(styraRun, sessionManager, inputTransformer);
     }
 
-    public ProxyServlet(StyraRun styraRun, InputTransformer inputTransformer) {
-        super(styraRun, inputTransformer);
+    public static <S extends Session> ProxyServlet from(StyraRun styraRun,
+                                                        SessionManager<S> sessionManager,
+                                                        InputTransformer<S> inputTransformer) {
+        //noinspection unchecked
+        return new ProxyServlet(styraRun,
+                (SessionManager<Session>) sessionManager,
+                (InputTransformer<Session>) inputTransformer);
     }
 
     @Override
@@ -26,17 +41,14 @@ public final class ProxyServlet extends StyraRunServlet {
             throws ServletException, IOException {
         StyraRun styraRun = getStyraRun();
         Json json = styraRun.getJson();
-        InputTransformer inputTransformer = getInputTransformer();
+        SessionManager<Session> sessionManager = getSessionManager();
+
+        Proxy<Session> proxy = getProxy();
 
         handleAsync(request, response, (body, out, async) -> {
             BatchQuery query = BatchQuery.fromMap(json.toMap(body));
-            List<BatchQuery.Item> items = query.getItems().stream()
-                    .map((q) -> new BatchQuery.Item(q.getPath(),
-                            inputTransformer.transform(q.getInput(), q.getPath(), request)))
-                    .collect(Collectors.toList());
-            Input<?> globalInput = inputTransformer.transform(query.getInput(), null, request);
 
-            styraRun.batchQuery(items, globalInput)
+            proxy.proxy(query, sessionManager.getSession(request))
                     .thenAccept((result) ->
                             writeOkJsonResponse(result.withoutAttributes().toMap(), response, out, async))
                     .exceptionally((e) -> {
@@ -44,5 +56,15 @@ public final class ProxyServlet extends StyraRunServlet {
                         return null;
                     });
         });
+    }
+
+    private Proxy<Session> getProxy() throws ServletException {
+        if (proxy == null) {
+            InputTransformer<Session> inputTransformer = getInputTransformer();
+            proxy = Proxy.builder(styraRun)
+                    .inputTransformer(inputTransformer)
+                    .build();
+        }
+        return proxy;
     }
 }

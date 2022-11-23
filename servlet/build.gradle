@@ -2,8 +2,9 @@ plugins {
     id 'java'
 }
 
-group 'com.styra.run'
-version '0.0.1-SNAPSHOT'
+apply from: '../publish.gradle'
+
+version '0.1.0'
 
 compileJava {
     sourceCompatibility = JavaVersion.VERSION_1_8

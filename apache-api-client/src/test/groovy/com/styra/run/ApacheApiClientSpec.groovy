@@ -41,7 +41,8 @@ class ApacheApiClientSpec extends Specification {
                 .apiClient
 
         then: 'the client used is a DefaultApiClient'
-        client instanceof ApacheApiClient
+        client instanceof LoggingApiClient
+        (client as LoggingApiClient).delegate instanceof ApacheApiClient
     }
 
     @Unroll

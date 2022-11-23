@@ -1,7 +1,7 @@
 package com.styra.run.discovery
 
-import com.styra.run.RetryException
-import com.styra.run.StyraRunException
+import com.styra.run.exceptions.RetryException
+import com.styra.run.exceptions.StyraRunException
 import com.styra.run.test.CountingApiClient
 import spock.lang.Specification
 import spock.lang.Unroll

@@ -1,5 +1,6 @@
 package com.styra.run;
 
+import com.styra.run.exceptions.StyraRunException;
 import com.styra.run.utils.Null;
 
 import java.util.Collection;
@@ -187,6 +188,14 @@ public class Result<T> implements SerializableAsMap {
                                         type.getCanonicalName(), entry.getValue().getClass().getCanonicalName()), e);
                             }
                         }))));
+    }
+
+    boolean isValueType(Class<?> type) {
+        return type.isInstance(value);
+    }
+
+    boolean isBooleanValue() {
+        return isValueType(Boolean.class);
     }
 
     public Map<String, ?> getAttributes() {

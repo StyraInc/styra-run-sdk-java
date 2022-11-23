@@ -2,8 +2,8 @@ package com.styra.run.discovery;
 
 import com.styra.run.ApiClient.RequestBuilder;
 import com.styra.run.ApiResponse;
-import com.styra.run.RetryException;
-import com.styra.run.StyraRunException;
+import com.styra.run.exceptions.RetryException;
+import com.styra.run.exceptions.StyraRunException;
 import com.styra.run.utils.Futures;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
