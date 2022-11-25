@@ -5,7 +5,7 @@ import com.styra.run.servlet.ProxyServlet;
 import com.styra.run.servlet.rbac.RbacRolesServlet;
 import com.styra.run.servlet.rbac.RbacUserBindingServlet;
 import com.styra.run.servlet.rbac.RbacUserBindingsServlet;
-import com.styra.run.servlet.session.CookieSessionManager;
+import com.styra.run.servlet.session.CookieTenantSessionManager;
 import com.styra.run.session.TenantInputTransformer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -21,7 +21,7 @@ public class TestServer {
         server.setHandler(root);
 
         var styraRun = StyraRun.builder(url, token).build();
-        var sessionManager = new CookieSessionManager();
+        var sessionManager = new CookieTenantSessionManager();
         var inputTransformer = new TenantInputTransformer();
 
 //        RbacServletHelper.addRbacServlets(root, "/rbac", styraRun, sessionManager, inputTransformer);
@@ -29,7 +29,7 @@ public class TestServer {
         var rbacRolesServlet = RbacRolesServlet.from(styraRun, sessionManager, inputTransformer);
         root.addServlet(new ServletHolder(rbacRolesServlet), "/roles");
 
-        var rbacUserBindingsServlet = RbacUserBindingsServlet.from(styraRun, sessionManager, inputTransformer);
+        var rbacUserBindingsServlet = RbacUserBindingsServlet.from(styraRun, sessionManager, inputTransformer, null);
         root.addServlet(new ServletHolder(rbacUserBindingsServlet), "/user_bindings_all");
 
         var rbacUserBindingServlet = RbacUserBindingServlet.from(styraRun, sessionManager, inputTransformer);

@@ -12,20 +12,21 @@ import static com.styra.run.utils.Url.joinPath;
 public final class RbacServletHelper {
     public static <S extends Session> void addRbacServlets(ServletContextHandler contextHandler,
                                                            String path) {
-        addRbacServlets(contextHandler, path, null, null, null);
+        addRbacServlets(contextHandler, path, null, null, null, null);
     }
 
     public static <S extends Session> void addRbacServlets(ServletContextHandler contextHandler,
                                                            String path,
                                                            StyraRun styraRun,
                                                            SessionManager<S> sessionManager,
-                                                           InputTransformer<S> inputTransformer) {
+                                                           InputTransformer<S> inputTransformer,
+                                                           UserProvider userProvider) {
         contextHandler.addServlet(
                 new ServletHolder(RbacRolesServlet.from(styraRun, sessionManager, inputTransformer)),
                 joinPath(path, "roles"));
 
         contextHandler.addServlet(
-                new ServletHolder(RbacUserBindingsServlet.from(styraRun, sessionManager, inputTransformer)),
+                new ServletHolder(RbacUserBindingsServlet.from(styraRun, sessionManager, inputTransformer, userProvider)),
                 joinPath(path, "user_bindings"));
 
         contextHandler.addServlet(

@@ -6,6 +6,7 @@ import com.styra.run.SerializableAsMap;
 import com.styra.run.StyraRun;
 import com.styra.run.exceptions.AuthorizationException;
 import com.styra.run.rbac.RbacManager;
+import com.styra.run.servlet.pagination.Page;
 import com.styra.run.servlet.StyraRunServlet;
 import com.styra.run.servlet.session.SessionManager;
 import com.styra.run.session.InputTransformer;
@@ -18,6 +19,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import static com.styra.run.utils.Null.firstNonNull;
+import static java.util.Collections.singletonMap;
 
 public class AbstractRbacServlet extends StyraRunServlet {
     public AbstractRbacServlet() {
@@ -47,7 +49,15 @@ public class AbstractRbacServlet extends StyraRunServlet {
     }
 
     protected void writeResult(Object value, HttpServletResponse response, ServletOutputStream out, AsyncContext context) {
-        writeOkJsonResponse(new Result<>(SerializableAsMap.serialize(value)).toMap(), response, out, context);
+        writeResult(value, null, response, out, context);
+    }
+
+    protected void writeResult(Object value, Page page, HttpServletResponse response, ServletOutputStream out, AsyncContext context) {
+        Result<?> result = new Result<>(SerializableAsMap.serialize(value));
+        if (page != null) {
+            result = result.withAttributes(singletonMap("page", page.serialize()));
+        }
+        writeOkJsonResponse(result.toMap(), response, out, context);
     }
 
     protected String getPath(HttpServletRequest request) {

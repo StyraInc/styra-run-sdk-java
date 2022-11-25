@@ -8,16 +8,16 @@ import java.util.Arrays;
 
 import static java.util.Objects.requireNonNull;
 
-public class CookieSessionManager implements SessionManager<TenantSession> {
+public class CookieTenantSessionManager implements SessionManager<TenantSession> {
     public static final String DEFAULT_COOKIE_NAME = "user";
 
     private final String cookieName;
 
-    public CookieSessionManager() {
+    public CookieTenantSessionManager() {
         this(DEFAULT_COOKIE_NAME);
     }
 
-    public CookieSessionManager(String cookieName) {
+    public CookieTenantSessionManager(String cookieName) {
         this.cookieName = requireNonNull(cookieName, "cookieName must not be null");
     }
 
