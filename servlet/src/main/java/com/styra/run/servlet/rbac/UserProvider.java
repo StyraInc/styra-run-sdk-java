@@ -10,8 +10,8 @@ import java.util.Map;
 import static java.util.Collections.emptyList;
 
 public interface UserProvider extends Paginator<User, TenantSession> {
-    static UserProvider from(List<User> users) {
-        return new ListUserProvider(users);
+    static UserProvider from(Map<String, List<User>> usersByTenant) {
+        return new UnpagedUserProvider(usersByTenant);
     }
 
     static UserProvider from(Map<String, List<User>> usersByTenant, int pageSize) {
