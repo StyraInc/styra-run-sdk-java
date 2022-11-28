@@ -1,5 +1,6 @@
-package com.styra.run.servlet.session;
+package com.styra.run.test;
 
+import com.styra.run.servlet.session.TenantSessionManager;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -11,7 +12,6 @@ import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
 
-// FIXME: Remove?
 public class CookieTenantSessionManager extends TenantSessionManager {
     public static final String DEFAULT_COOKIE_NAME = "user";
 

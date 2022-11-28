@@ -7,7 +7,6 @@ import com.styra.run.servlet.rbac.RbacRolesServlet;
 import com.styra.run.servlet.rbac.RbacUserBindingServlet;
 import com.styra.run.servlet.rbac.RbacUserBindingsListServlet;
 import com.styra.run.servlet.rbac.UserProvider;
-import com.styra.run.servlet.session.CookieTenantSessionManager;
 import com.styra.run.session.TenantInputTransformer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
