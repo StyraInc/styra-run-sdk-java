@@ -2,6 +2,7 @@ package com.styra.run.test;
 
 import com.styra.run.StyraRun;
 import com.styra.run.servlet.StyraRunServlet;
+import com.styra.run.session.Session;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -10,9 +11,9 @@ import java.io.IOException;
 
 import static com.styra.run.utils.Null.firstNonNull;
 
-public class DataProxyServlet extends StyraRunServlet {
+public class DataProxyServlet extends StyraRunServlet<Session> {
     public DataProxyServlet(StyraRun styraRun) {
-        super(styraRun, null, null);
+        super(styraRun, null);
     }
 
     @Override

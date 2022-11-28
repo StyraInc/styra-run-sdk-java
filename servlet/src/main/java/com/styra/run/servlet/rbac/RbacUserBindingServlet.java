@@ -1,6 +1,5 @@
 package com.styra.run.servlet.rbac;
 
-import com.styra.run.ApiError;
 import com.styra.run.StyraRun;
 import com.styra.run.rbac.RbacManager;
 import com.styra.run.rbac.Role;
@@ -8,8 +7,7 @@ import com.styra.run.rbac.User;
 import com.styra.run.rbac.UserBinding;
 import com.styra.run.servlet.BadRequestException;
 import com.styra.run.servlet.session.SessionManager;
-import com.styra.run.session.InputTransformer;
-import com.styra.run.session.Session;
+import com.styra.run.session.TenantSession;
 import com.styra.run.utils.Url;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,19 +22,9 @@ public class RbacUserBindingServlet extends AbstractRbacServlet {
         super();
     }
 
-    private RbacUserBindingServlet(StyraRun styraRun,
-                                   SessionManager<Session> sessionManager,
-                                   InputTransformer<Session> inputTransformer) {
-        super(styraRun, sessionManager, inputTransformer);
-    }
-
-    public static <S extends Session> RbacUserBindingServlet from(StyraRun styraRun,
-                                                                  SessionManager<S> sessionManager,
-                                                                  InputTransformer<S> inputTransformer) {
-        //noinspection unchecked
-        return new RbacUserBindingServlet(styraRun,
-                (SessionManager<Session>) sessionManager,
-                (InputTransformer<Session>) inputTransformer);
+    public RbacUserBindingServlet(StyraRun styraRun,
+                                   SessionManager<TenantSession> sessionManager) {
+        super(styraRun, sessionManager);
     }
 
     @Override

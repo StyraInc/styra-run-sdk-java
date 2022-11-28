@@ -24,8 +24,8 @@ public class TenantSession extends MapInput<String, Object> implements Session {
                 requireNotEmpty(tenant, "tenant must not be null or empty")));
     }
 
-    private TenantSession(Map<String, Object> map) {
-        super(require(map, (m) -> m.containsKey(TENANT_KEY),
+    public TenantSession(Map<String, Object> map) {
+        super(require(map, (m) -> m != null && m.containsKey(TENANT_KEY),
                 String.format("map doesn't contain %s entry", TENANT_KEY)));
     }
 

@@ -3,8 +3,7 @@ package com.styra.run.servlet.rbac;
 import com.styra.run.StyraRun;
 import com.styra.run.rbac.RbacManager;
 import com.styra.run.servlet.session.SessionManager;
-import com.styra.run.session.InputTransformer;
-import com.styra.run.session.Session;
+import com.styra.run.session.TenantSession;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -16,19 +15,9 @@ public class RbacRolesServlet extends AbstractRbacServlet {
         super();
     }
 
-    private RbacRolesServlet(StyraRun styraRun,
-                             SessionManager<Session> sessionManager,
-                             InputTransformer<Session> inputTransformer) {
-        super(styraRun, sessionManager, inputTransformer);
-    }
-
-    public static <S extends Session> RbacRolesServlet from(StyraRun styraRun,
-                                                       SessionManager<S> sessionManager,
-                                                       InputTransformer<S> inputTransformer) {
-        //noinspection unchecked
-        return new RbacRolesServlet(styraRun,
-                (SessionManager<Session>) sessionManager,
-                (InputTransformer<Session>) inputTransformer);
+    public RbacRolesServlet(StyraRun styraRun,
+                             SessionManager<TenantSession> sessionManager) {
+        super(styraRun, sessionManager);
     }
 
     @Override

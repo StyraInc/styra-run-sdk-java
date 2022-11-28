@@ -26,16 +26,16 @@ public class TestServer {
 
 //        RbacServletHelper.addRbacServlets(root, "/rbac", styraRun, sessionManager, inputTransformer);
 
-        var rbacRolesServlet = RbacRolesServlet.from(styraRun, sessionManager, inputTransformer);
+        var rbacRolesServlet = new RbacRolesServlet(styraRun, sessionManager);
         root.addServlet(new ServletHolder(rbacRolesServlet), "/roles");
 
-        var rbacUserBindingsServlet = RbacUserBindingsListServlet.from(styraRun, sessionManager, inputTransformer, null);
+        var rbacUserBindingsServlet = new RbacUserBindingsListServlet(styraRun, sessionManager, null);
         root.addServlet(new ServletHolder(rbacUserBindingsServlet), "/user_bindings_all");
 
-        var rbacUserBindingServlet = RbacUserBindingServlet.from(styraRun, sessionManager, inputTransformer);
+        var rbacUserBindingServlet = new RbacUserBindingServlet(styraRun, sessionManager);
         root.addServlet(new ServletHolder(rbacUserBindingServlet), "/user_bindings/*");
 
-        var proxyServlet = ProxyServlet.from(styraRun, sessionManager, inputTransformer);
+        var proxyServlet = new ProxyServlet<>(styraRun, sessionManager, inputTransformer);
         root.addServlet(new ServletHolder(proxyServlet), "/batch_query");
 
         var queryServlet = new QueryProxyServlet(styraRun);

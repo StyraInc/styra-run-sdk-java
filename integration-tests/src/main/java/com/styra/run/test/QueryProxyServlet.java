@@ -4,6 +4,7 @@ import com.styra.run.InputContainer;
 import com.styra.run.Json;
 import com.styra.run.StyraRun;
 import com.styra.run.servlet.StyraRunServlet;
+import com.styra.run.session.Session;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -12,9 +13,9 @@ import java.io.IOException;
 
 import static com.styra.run.utils.Null.firstNonNull;
 
-public class QueryProxyServlet extends StyraRunServlet {
+public class QueryProxyServlet extends StyraRunServlet<Session> {
     public QueryProxyServlet(StyraRun styraRun) {
-        super(styraRun, null, null);
+        super(styraRun, null);
     }
 
     @Override

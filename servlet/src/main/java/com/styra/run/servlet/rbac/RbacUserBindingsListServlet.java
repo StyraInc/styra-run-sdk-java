@@ -5,8 +5,6 @@ import com.styra.run.rbac.RbacManager;
 import com.styra.run.rbac.User;
 import com.styra.run.servlet.pagination.Paginator.PagedData;
 import com.styra.run.servlet.session.SessionManager;
-import com.styra.run.session.InputTransformer;
-import com.styra.run.session.Session;
 import com.styra.run.session.TenantSession;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,11 +23,10 @@ public class RbacUserBindingsListServlet extends AbstractRbacServlet {
         super();
     }
 
-    private RbacUserBindingsListServlet(StyraRun styraRun,
-                                        SessionManager<Session> sessionManager,
-                                        InputTransformer<Session> inputTransformer,
+    public RbacUserBindingsListServlet(StyraRun styraRun,
+                                        SessionManager<TenantSession> sessionManager,
                                         UserProvider userProvider) {
-        super(styraRun, sessionManager, inputTransformer);
+        super(styraRun, sessionManager);
         this.userProvider = userProvider;
     }
 
@@ -39,17 +36,6 @@ public class RbacUserBindingsListServlet extends AbstractRbacServlet {
                     () -> new ServletException(String.format("'%s' attribute on servlet context was not UserPaginator type", USER_PAGINATOR_ATTR)));
         }
         return userProvider;
-    }
-
-    public static <S extends Session> RbacUserBindingsListServlet from(StyraRun styraRun,
-                                                                       SessionManager<S> sessionManager,
-                                                                       InputTransformer<S> inputTransformer,
-                                                                       UserProvider userProvider) {
-        //noinspection unchecked
-        return new RbacUserBindingsListServlet(styraRun,
-                (SessionManager<Session>) sessionManager,
-                (InputTransformer<Session>) inputTransformer,
-                userProvider);
     }
 
     @Override
