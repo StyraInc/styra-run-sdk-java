@@ -4,7 +4,7 @@ import com.styra.run.StyraRun;
 import com.styra.run.servlet.ProxyServlet;
 import com.styra.run.servlet.rbac.RbacRolesServlet;
 import com.styra.run.servlet.rbac.RbacUserBindingServlet;
-import com.styra.run.servlet.rbac.RbacUserBindingsServlet;
+import com.styra.run.servlet.rbac.RbacUserBindingsListServlet;
 import com.styra.run.servlet.session.CookieTenantSessionManager;
 import com.styra.run.session.TenantInputTransformer;
 import org.eclipse.jetty.server.Server;
@@ -29,7 +29,7 @@ public class TestServer {
         var rbacRolesServlet = RbacRolesServlet.from(styraRun, sessionManager, inputTransformer);
         root.addServlet(new ServletHolder(rbacRolesServlet), "/roles");
 
-        var rbacUserBindingsServlet = RbacUserBindingsServlet.from(styraRun, sessionManager, inputTransformer, null);
+        var rbacUserBindingsServlet = RbacUserBindingsListServlet.from(styraRun, sessionManager, inputTransformer, null);
         root.addServlet(new ServletHolder(rbacUserBindingsServlet), "/user_bindings_all");
 
         var rbacUserBindingServlet = RbacUserBindingServlet.from(styraRun, sessionManager, inputTransformer);

@@ -26,7 +26,7 @@ public final class RbacServletHelper {
                 joinPath(path, "roles"));
 
         contextHandler.addServlet(
-                new ServletHolder(RbacUserBindingsServlet.from(styraRun, sessionManager, inputTransformer, userProvider)),
+                new ServletHolder(RbacUserBindingsListServlet.from(styraRun, sessionManager, inputTransformer, userProvider)),
                 joinPath(path, "user_bindings"));
 
         contextHandler.addServlet(

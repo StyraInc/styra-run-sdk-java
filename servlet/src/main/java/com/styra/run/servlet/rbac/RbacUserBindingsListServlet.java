@@ -16,19 +16,19 @@ import java.io.IOException;
 
 import static com.styra.run.utils.Types.cast;
 
-public class RbacUserBindingsServlet extends AbstractRbacServlet {
+public class RbacUserBindingsListServlet extends AbstractRbacServlet {
     public static final String USER_PAGINATOR_ATTR = "com.styra.run.user-paginator";
 
     private volatile UserProvider userProvider = null;
 
-    public RbacUserBindingsServlet() {
+    public RbacUserBindingsListServlet() {
         super();
     }
 
-    private RbacUserBindingsServlet(StyraRun styraRun,
-                                    SessionManager<Session> sessionManager,
-                                    InputTransformer<Session> inputTransformer,
-                                    UserProvider userProvider) {
+    private RbacUserBindingsListServlet(StyraRun styraRun,
+                                        SessionManager<Session> sessionManager,
+                                        InputTransformer<Session> inputTransformer,
+                                        UserProvider userProvider) {
         super(styraRun, sessionManager, inputTransformer);
         this.userProvider = userProvider;
     }
@@ -41,12 +41,12 @@ public class RbacUserBindingsServlet extends AbstractRbacServlet {
         return userProvider;
     }
 
-    public static <S extends Session> RbacUserBindingsServlet from(StyraRun styraRun,
-                                                                   SessionManager<S> sessionManager,
-                                                                   InputTransformer<S> inputTransformer,
-                                                                   UserProvider userProvider) {
+    public static <S extends Session> RbacUserBindingsListServlet from(StyraRun styraRun,
+                                                                       SessionManager<S> sessionManager,
+                                                                       InputTransformer<S> inputTransformer,
+                                                                       UserProvider userProvider) {
         //noinspection unchecked
-        return new RbacUserBindingsServlet(styraRun,
+        return new RbacUserBindingsListServlet(styraRun,
                 (SessionManager<Session>) sessionManager,
                 (InputTransformer<Session>) inputTransformer,
                 userProvider);
@@ -59,10 +59,10 @@ public class RbacUserBindingsServlet extends AbstractRbacServlet {
 
         handleAsync(request, response, (body, out, async) -> {
             TenantSession session = getSession(request);
+            RbacManager rbac = getRbacManager();
 
             if (userProvider != null) {
                 PagedData<User> pagedUsers = userProvider.get(request.getParameter("page"), session);
-                RbacManager rbac = getRbacManager();
 
                 rbac.getUserBindings(pagedUsers.getData(), session)
                         .thenAccept((bindings) -> writeResult(bindings, pagedUsers.getPage(), response, out, async))
@@ -71,7 +71,6 @@ public class RbacUserBindingsServlet extends AbstractRbacServlet {
                             return null;
                         });
             } else {
-                RbacManager rbac = getRbacManager();
                 rbac.listUserBindings(session)
                         .thenAccept((bindings) -> writeResult(bindings, response, out, async))
                         .exceptionally((e) -> {
