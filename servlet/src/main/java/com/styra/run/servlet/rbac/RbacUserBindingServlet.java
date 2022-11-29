@@ -6,6 +6,7 @@ import com.styra.run.rbac.Role;
 import com.styra.run.rbac.User;
 import com.styra.run.rbac.UserBinding;
 import com.styra.run.servlet.BadRequestException;
+import com.styra.run.servlet.StyraRunServlet;
 import com.styra.run.servlet.session.SessionManager;
 import com.styra.run.session.TenantSession;
 import com.styra.run.utils.Url;
@@ -17,6 +18,42 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * A servlet for managing a single user-binding in a <code>tenant</code>, as defined by a Styra Run <code>project</code>.
+ *
+ * E.g.
+ * <pre>
+ * GET /user_bindings/alice
+ * ->
+ * 200 OK
+ * {
+ *    "result": [
+ *       "ADMIN"
+ *    ]
+ * }
+ * </pre>
+ * <p>
+ * Setting the user-binding for <code>alice</code>:
+ * <pre>
+ * PUT /user_bindings/alice
+ * [
+ *     "VIEWER"
+ * ]
+ * ->
+ * 200 OK
+ * {}
+ * </pre>
+ * <p>
+ * Deleting the user-binding for <code>alice</code>:
+ * <pre>
+ * DELETE /user_bindings/alice
+ * ->
+ * 200 OK
+ * {}
+ * </pre>
+ *
+ * @see StyraRunServlet
+ */
 public class RbacUserBindingServlet extends AbstractRbacServlet {
     public RbacUserBindingServlet() {
         super();

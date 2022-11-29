@@ -28,7 +28,7 @@ import static com.styra.run.utils.Types.cast;
  *          Optional; {@link InputTransformer#identity()} is used by default.
  *     </li>
  * </ul>
- *
+ * <p>
  * Please also see {@link StyraRunServlet} for additional services that can be injected by attribute.
  *
  * @see StyraRunServlet
@@ -46,8 +46,8 @@ public final class ProxyServlet<S extends Session> extends StyraRunServlet<S> {
     }
 
     public ProxyServlet(StyraRun styraRun,
-                         SessionManager<S> sessionManager,
-                         InputTransformer<S> inputTransformer) {
+                        SessionManager<S> sessionManager,
+                        InputTransformer<S> inputTransformer) {
         super(styraRun, sessionManager);
         this.inputTransformer = inputTransformer;
     }
@@ -79,7 +79,7 @@ public final class ProxyServlet<S extends Session> extends StyraRunServlet<S> {
 
             //noinspection unchecked
             inputTransformer = Optional.ofNullable(cast(InputTransformer.class, getServletConfig().getServletContext().getAttribute(INPUT_TRANSFORMER_ATTR),
-                            () -> new ServletException(String.format("'%s' attribute on servlet context was not InputSupplier type", INPUT_TRANSFORMER_ATTR))))
+                            () -> new ServletException(String.format("'%s' attribute on servlet context was not InputTransformer type", INPUT_TRANSFORMER_ATTR))))
                     .orElse(DEFAULT_INPUT_TRANSFORMER);
         }
         return inputTransformer;

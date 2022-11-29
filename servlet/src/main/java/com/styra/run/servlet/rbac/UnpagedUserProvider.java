@@ -9,6 +9,9 @@ import java.util.Map;
 
 import static java.util.Collections.emptyList;
 
+/**
+ * A convenience {@link UserProvider} that maps lists of {@link User users} to tenant String identifiers.
+ */
 public class UnpagedUserProvider implements UserProvider {
     private final Map<String, List<User>> usersByTenant;
 

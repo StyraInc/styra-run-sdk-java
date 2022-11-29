@@ -9,6 +9,12 @@ import java.util.Map;
 
 import static java.util.Collections.emptyList;
 
+/**
+ * The UserProvider is an integration point for enumerating {@link User users} known by the server,
+ * but not necessarily by the Styra Run <code>project environment</code>.
+ * <p>
+ * Supports {@link Paginator pagination} of users.
+ */
 public interface UserProvider extends Paginator<User, TenantSession> {
     static UserProvider from(Map<String, List<User>> usersByTenant) {
         return new UnpagedUserProvider(usersByTenant);

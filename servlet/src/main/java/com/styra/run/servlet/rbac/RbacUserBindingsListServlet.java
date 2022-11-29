@@ -3,6 +3,7 @@ package com.styra.run.servlet.rbac;
 import com.styra.run.StyraRun;
 import com.styra.run.rbac.RbacManager;
 import com.styra.run.rbac.User;
+import com.styra.run.servlet.StyraRunServlet;
 import com.styra.run.servlet.pagination.Paginator.PagedData;
 import com.styra.run.servlet.session.SessionManager;
 import com.styra.run.session.TenantSession;
@@ -14,6 +15,34 @@ import java.io.IOException;
 
 import static com.styra.run.utils.Types.cast;
 
+/**
+ * A servlet for enumerating <code>user-bindings</code> in a <code>tenant</code>, as defined by a Styra Run <code>project</code>.
+ * <p>
+ * E.g.
+ * <p>
+ * Getting the user-binding for <code>alice</code>:
+ * <pre>
+ * GET /roles
+ * ->
+ * 200 OK
+ * {
+ *    "result": [
+ *       "ADMIN",
+ *       "VIEWER",
+ *       "EDITOR"
+ *    ]
+ * }
+ * </pre>
+ *
+ * <p>
+ * If a {@link UserProvider} is provided on construction or as an {@link #USER_PAGINATOR_ATTR attribute} servlet context,
+ * user-bindings for only those {@link User users} enumerated by the provider will be fetched from the Styra Run <code>project environment</code>.
+ * The UserProvider defines pagination, if any.
+ * <p>
+ * If no UserProvider is provided, all user-bindings in the Styra Run <code>project environment</code> will be fetched.
+ *
+ * @see StyraRunServlet
+ */
 public class RbacUserBindingsListServlet extends AbstractRbacServlet {
     public static final String USER_PAGINATOR_ATTR = "com.styra.run.user-paginator";
 
@@ -24,8 +53,8 @@ public class RbacUserBindingsListServlet extends AbstractRbacServlet {
     }
 
     public RbacUserBindingsListServlet(StyraRun styraRun,
-                                        SessionManager<TenantSession> sessionManager,
-                                        UserProvider userProvider) {
+                                       SessionManager<TenantSession> sessionManager,
+                                       UserProvider userProvider) {
         super(styraRun, sessionManager);
         this.userProvider = userProvider;
     }
