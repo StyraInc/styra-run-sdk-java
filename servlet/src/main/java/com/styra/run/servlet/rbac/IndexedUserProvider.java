@@ -82,7 +82,7 @@ public abstract class IndexedUserProvider implements UserProvider {
         public Object serialize() {
             Map<String, Integer> map = new HashMap<>();
             map.put("index", index);
-            Null.ifNotNull(totalPages, v -> map.put("of", v));
+            Null.ifNotNull(totalPages, v -> map.put("total", v));
             return map;
         }
     }
