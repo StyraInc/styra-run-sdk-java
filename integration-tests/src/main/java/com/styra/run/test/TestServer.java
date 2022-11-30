@@ -56,7 +56,7 @@ public class TestServer {
                         new User("emily"),
                         new User("harold"),
                         new User("vivian")
-                )), 2);
+                )), 3);
         var rbacPagedUserBindingsServlet = new RbacUserBindingsListServlet(styraRun, sessionManager, userProvider);
         root.addServlet(new ServletHolder(rbacPagedUserBindingsServlet), "/user_bindings");
 
