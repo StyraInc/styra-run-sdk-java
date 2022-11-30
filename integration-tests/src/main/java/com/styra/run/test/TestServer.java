@@ -8,12 +8,19 @@ import com.styra.run.servlet.rbac.RbacUserBindingServlet;
 import com.styra.run.servlet.rbac.RbacUserBindingsListServlet;
 import com.styra.run.servlet.rbac.UserProvider;
 import com.styra.run.session.TenantInputTransformer;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class TestServer {
     public static void main(String... args) throws Exception {
@@ -63,7 +70,62 @@ public class TestServer {
         var dataServlet = new DataProxyServlet(styraRun);
         root.addServlet(new ServletHolder(dataServlet), "/data/*");
 
+        root.addServlet(StatusServlet.class, "/ready");
+        root.addServlet(new ServletHolder(new KillServlet(server)), "/kill");
+
+        System.err.println("Starting server");
         server.start();
-        server.join();
+
+        try {
+            server.join();
+        } catch (InterruptedException e) {
+            System.err.println("Server interrupted");
+        }
+        System.err.println("Server stopped");
+        System.exit(0);
+    }
+
+    public static class KillServlet extends HttpServlet {
+        private final Server server;
+        private final ScheduledExecutorService killExecutor = Executors.newSingleThreadScheduledExecutor();
+
+        public KillServlet(Server server) {
+            this.server = server;
+        }
+
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
+            try {
+                resp.setStatus(200);
+                resp.flushBuffer();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            System.err.println("Scheduled to stop");
+            killExecutor.schedule(() -> {
+                try {
+                    System.err.println("Stopping");
+                    server.stop();
+                    synchronized (server) {
+                        server.notify();
+                    }
+                } catch (Exception e) {
+                    System.err.println("Failed to stop; terminating");
+                    System.exit(1);
+                }
+            }, 2, TimeUnit.SECONDS);
+        }
+    }
+
+    public static class StatusServlet extends HttpServlet {
+        @Override
+        protected void doHead(HttpServletRequest req, HttpServletResponse resp) {
+            doGet(req, resp);
+        }
+
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
+            resp.setStatus(200);
+        }
     }
 }
