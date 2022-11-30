@@ -1,0 +1,3 @@
+[submodule "integration-tests/styra-run-sdk-tests"]
+	path = integration-tests/styra-run-sdk-tests
+	url = https://github.com/StyraInc/styra-run-sdk-tests.git
