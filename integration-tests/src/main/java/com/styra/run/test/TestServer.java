@@ -23,11 +23,16 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class TestServer {
-    public static void main(String... args) throws Exception {
+    private final Server server;
+
+    public TestServer(int port) {
+        this.server = new Server(port);
+    }
+
+    public void start() throws Exception {
         var url = "http://localhost:4000";
         var token = "foobar";
 
-        var server = new Server(3000);
         var root = new ServletContextHandler();
         server.setHandler(root);
 
@@ -71,17 +76,29 @@ public class TestServer {
         root.addServlet(new ServletHolder(dataServlet), "/data/*");
 
         root.addServlet(StatusServlet.class, "/ready");
-        root.addServlet(new ServletHolder(new KillServlet(server)), "/kill");
+        root.addServlet(new ServletHolder(new KillServlet(server)), "/stop");
 
-        System.err.println("Starting server");
         server.start();
+        System.err.println("Server started");
+    }
 
+    public void join() {
         try {
             server.join();
         } catch (InterruptedException e) {
             System.err.println("Server interrupted");
         }
+    }
+
+    public void stop() throws Exception {
+        server.stop();
         System.err.println("Server stopped");
+    }
+
+    public static void main(String... args) throws Exception {
+        var testServer = new TestServer(3000);
+        testServer.start();
+        testServer.join();
         System.exit(0);
     }
 
