@@ -27,7 +27,7 @@ public class IntegrationTests {
 
     @Test
     void test() throws IOException, InterruptedException {
-        var process = new ProcessBuilder("go", "test", "tests/sdk_test.go")
+        var process = new ProcessBuilder("make", "test")
                 .directory(new File("./styra-run-sdk-tests"))
                 .start();
         var finished = process.waitFor(5, TimeUnit.MINUTES);
