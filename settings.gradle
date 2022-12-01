@@ -2,7 +2,6 @@ rootProject.name = 'styra-run-sdk-java'
 include 'core'
 include 'sdk'
 include 'servlet'
-include 'apache-api-client'
 
 project(':core').name = 'styra-run-sdk-core'
 project(':sdk').name = 'styra-run-sdk'
