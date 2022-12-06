@@ -5,7 +5,7 @@ import com.styra.run.rbac.User;
 import com.styra.run.servlet.ProxyServlet;
 import com.styra.run.servlet.rbac.RbacRolesServlet;
 import com.styra.run.servlet.rbac.RbacUserBindingServlet;
-import com.styra.run.servlet.rbac.RbacUserBindingsListServlet;
+import com.styra.run.servlet.rbac.RbacListUserBindingsServlet;
 import com.styra.run.servlet.rbac.UserProvider;
 import com.styra.run.session.TenantInputTransformer;
 import jakarta.servlet.http.HttpServlet;
@@ -45,7 +45,7 @@ public class TestServer {
         var rbacRolesServlet = new RbacRolesServlet(styraRun, sessionManager);
         root.addServlet(new ServletHolder(rbacRolesServlet), "/roles");
 
-        var rbacAllUserBindingsServlet = new RbacUserBindingsListServlet(styraRun, sessionManager, null);
+        var rbacAllUserBindingsServlet = new RbacListUserBindingsServlet(styraRun, sessionManager, null);
         root.addServlet(new ServletHolder(rbacAllUserBindingsServlet), "/user_bindings_all");
 
         var userProvider = UserProvider.from(Map.of(
@@ -57,7 +57,7 @@ public class TestServer {
                         new User("harold"),
                         new User("vivian")
                 )), 3);
-        var rbacPagedUserBindingsServlet = new RbacUserBindingsListServlet(styraRun, sessionManager, userProvider);
+        var rbacPagedUserBindingsServlet = new RbacListUserBindingsServlet(styraRun, sessionManager, userProvider);
         root.addServlet(new ServletHolder(rbacPagedUserBindingsServlet), "/user_bindings");
 
         var rbacUserBindingServlet = new RbacUserBindingServlet(styraRun, sessionManager);

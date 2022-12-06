@@ -34,7 +34,7 @@ public final class RbacServletHelper {
      * <ul>
      *     <li>{@link RbacRolesServlet}, for listing RBAC roles</li>
      *     <li>{@link RbacUserBindingServlet}, for reading, updating, and deleting a single RBAC user-binding</li>
-     *     <li>{@link RbacUserBindingsListServlet}, for listing RBAC user-bindings</li>
+     *     <li>{@link RbacListUserBindingsServlet}, for listing RBAC user-bindings</li>
      * </ul>
      *
      * @param contextHandler the context to add the RBAC servlets to
@@ -53,7 +53,7 @@ public final class RbacServletHelper {
                 joinPath(path, "roles"));
 
         contextHandler.addServlet(
-                new ServletHolder(new RbacUserBindingsListServlet(styraRun, sessionManager, userProvider)),
+                new ServletHolder(new RbacListUserBindingsServlet(styraRun, sessionManager, userProvider)),
                 joinPath(path, "user_bindings"));
 
         contextHandler.addServlet(

@@ -43,16 +43,16 @@ import static com.styra.run.utils.Types.cast;
  *
  * @see StyraRunServlet
  */
-public class RbacUserBindingsListServlet extends AbstractRbacServlet {
+public class RbacListUserBindingsServlet extends AbstractRbacServlet {
     public static final String USER_PAGINATOR_ATTR = "com.styra.run.user-paginator";
 
     private volatile UserProvider userProvider = null;
 
-    public RbacUserBindingsListServlet() {
+    public RbacListUserBindingsServlet() {
         super();
     }
 
-    public RbacUserBindingsListServlet(StyraRun styraRun,
+    public RbacListUserBindingsServlet(StyraRun styraRun,
                                        SessionManager<TenantSession> sessionManager,
                                        UserProvider userProvider) {
         super(styraRun, sessionManager);

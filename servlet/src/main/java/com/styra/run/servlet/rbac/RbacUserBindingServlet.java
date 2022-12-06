@@ -124,6 +124,7 @@ public class RbacUserBindingServlet extends AbstractRbacServlet {
         });
     }
 
+    // TODO: Make pluggable
     private String getUserId(String path)
             throws BadRequestException {
         List<String> parts = Url.splitPath(path);
