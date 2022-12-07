@@ -52,9 +52,4 @@ public class TenantSession extends MapInput<String, Object> implements Session {
     public String getTenant() {
         return (String) getValue().get(TENANT_KEY);
     }
-
-    @Override
-    public Input<?> toInput() {
-        return this;
-    }
 }
