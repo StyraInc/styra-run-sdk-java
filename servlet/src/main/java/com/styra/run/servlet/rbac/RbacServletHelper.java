@@ -30,6 +30,23 @@ public final class RbacServletHelper {
     }
 
     /**
+     * The same as calling {@link #addRbacServlets(ServletContextHandler, String, StyraRun, SessionManager, UserProvider)}
+     * with <code>userProvider</code> set to <code>null</code>.
+     *
+     * @param contextHandler the context to add the RBAC servlets to
+     * @param path the URL path under which to add the RBAC servlets
+     * @param styraRun the {@link StyraRun} instance to use for communicating with the Styra Run API
+     * @param sessionManager the {@link SessionManager session-manager} to use for composing session information. May be <code>null</code>.
+     * @see #addRbacServlets(ServletContextHandler, String, StyraRun, SessionManager, UserProvider)
+     */
+    public static void addRbacServlets(ServletContextHandler contextHandler,
+                                       String path,
+                                       StyraRun styraRun,
+                                       SessionManager<TenantSession> sessionManager) {
+        addRbacServlets(contextHandler, path, styraRun, sessionManager, null);
+    }
+
+    /**
      * Sets upp the following RBAC management servlets:
      * <ul>
      *     <li>{@link RbacRolesServlet}, for listing RBAC roles</li>

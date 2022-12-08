@@ -12,6 +12,12 @@ import java.util.function.Function;
 public class TenantSessionManager implements SessionManager<TenantSession> {
     private final Function<HttpServletRequest, Map<String, Object>> sessionDataProvider;
 
+    /**
+     * The map returned by <code>sessionDataProvider</code> must contain a <code>"tenant"</code> entry
+     * in order to produce a valid {@link TenantSession}.
+     *
+     * @param sessionDataProvider provider of session data
+     */
     public TenantSessionManager(Function<HttpServletRequest, Map<String, Object>> sessionDataProvider) {
         this.sessionDataProvider = sessionDataProvider;
     }
