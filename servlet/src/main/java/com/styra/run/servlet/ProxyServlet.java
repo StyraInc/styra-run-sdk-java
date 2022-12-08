@@ -12,9 +12,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
-import java.util.Optional;
-
-import static com.styra.run.utils.Types.cast;
 
 /**
  * A servlet wrapping the functionality provided by {@link Proxy}.
@@ -38,7 +35,6 @@ public final class ProxyServlet<S extends Session> extends StyraRunServlet<S> {
 
     private static final InputTransformer<Session> DEFAULT_INPUT_TRANSFORMER = InputTransformer.identity();
 
-    private volatile InputTransformer<S> inputTransformer;
     private volatile Proxy<S> proxy = null;
 
     public ProxyServlet() {
@@ -46,10 +42,8 @@ public final class ProxyServlet<S extends Session> extends StyraRunServlet<S> {
     }
 
     public ProxyServlet(StyraRun styraRun,
-                        SessionManager<S> sessionManager,
-                        InputTransformer<S> inputTransformer) {
+                        SessionManager<S> sessionManager) {
         super(styraRun, sessionManager);
-        this.inputTransformer = inputTransformer;
     }
 
     @Override
@@ -74,20 +68,9 @@ public final class ProxyServlet<S extends Session> extends StyraRunServlet<S> {
         });
     }
 
-    private InputTransformer<S> getInputTransformer() throws ServletException {
-        if (inputTransformer == null) {
-
-            //noinspection unchecked
-            inputTransformer = Optional.ofNullable(cast(InputTransformer.class, getServletConfig().getServletContext().getAttribute(INPUT_TRANSFORMER_ATTR),
-                            () -> new ServletException(String.format("'%s' attribute on servlet context was not InputTransformer type", INPUT_TRANSFORMER_ATTR))))
-                    .orElse(DEFAULT_INPUT_TRANSFORMER);
-        }
-        return inputTransformer;
-    }
-
     private Proxy<S> getProxy() throws ServletException {
         if (proxy == null) {
-            InputTransformer<S> inputTransformer = getInputTransformer();
+            InputTransformer<S> inputTransformer = getSessionManager();
             proxy = Proxy.<S>builder(styraRun)
                     .inputTransformer(inputTransformer)
                     .build();

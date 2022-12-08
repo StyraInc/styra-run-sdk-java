@@ -63,7 +63,7 @@ public class TestServer {
         var rbacUserBindingServlet = new RbacUserBindingServlet(styraRun, sessionManager);
         root.addServlet(new ServletHolder(rbacUserBindingServlet), "/user_bindings/*");
 
-        var proxyServlet = new ProxyServlet<>(styraRun, sessionManager, inputTransformer);
+        var proxyServlet = new ProxyServlet<>(styraRun, sessionManager);
         root.addServlet(new ServletHolder(proxyServlet), "/batch_query");
 
         var queryServlet = new QueryProxyServlet(styraRun);

@@ -1,5 +1,7 @@
 package com.styra.run.servlet.session;
 
+import com.styra.run.Input;
+import com.styra.run.session.InputTransformer;
 import com.styra.run.session.Session;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -8,15 +10,12 @@ import jakarta.servlet.http.HttpServletRequest;
  *
  * @param <S> the {@link Session} type
  */
-public interface SessionManager<S extends Session> {
+public interface SessionManager<S extends Session> extends InputTransformer<S> {
     S getSession(HttpServletRequest request);
 
-    /**
-     * Returns <code>null</code> when queried for a session.
-     *
-     * @return <code>null</code>
-     */
-    static <S extends Session> SessionManager<S> noSessionManager() {
-        return (request) -> null;
-    }
+    @Override
+    default Input<?> transform(Input<?> input, String path, S session) {
+        return null;
+    };
 }
+

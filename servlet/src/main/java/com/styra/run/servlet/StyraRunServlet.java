@@ -3,6 +3,7 @@ package com.styra.run.servlet;
 import com.styra.run.ApiError;
 import com.styra.run.StyraRun;
 import com.styra.run.exceptions.AuthorizationException;
+import com.styra.run.servlet.session.NoSessionManager;
 import com.styra.run.servlet.session.SessionManager;
 import com.styra.run.session.Session;
 import jakarta.servlet.AsyncContext;
@@ -41,19 +42,17 @@ import static com.styra.run.utils.Types.cast;
  *     <li>
  *          {@link #SESSION_MANAGER_ATTR}: {@link SessionManager}
  *          <br>
- *          Optional; {@link SessionManager#noSessionManager()} is used by default.
+ *          Optional; {@link NoSessionManager} is used by default.
  *     </li>
  * </ul>
  */
 public abstract class StyraRunServlet<S extends Session> extends HttpServlet {
     public static final String STYRA_RUN_ATTR = "com.styra.run.styra-run";
     public static final String SESSION_MANAGER_ATTR = "com.styra.run.session-manager";
-    private static final SessionManager<Session> DEFAULT_SESSION_MANAGER = SessionManager.noSessionManager();
+    private static final SessionManager<Session> DEFAULT_SESSION_MANAGER = NoSessionManager.getInstance();
 
     protected final StyraRun styraRun;
     private volatile SessionManager<S> sessionManager;
-
-
 
     public StyraRunServlet() {
         this(null, null);
