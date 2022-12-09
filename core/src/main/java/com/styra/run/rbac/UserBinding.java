@@ -21,6 +21,10 @@ public class UserBinding implements SerializableAsMap {
         this(user, Collections.emptyList());
     }
 
+    public UserBinding(User user, Role role) {
+        this(user, Collections.singletonList(role));
+    }
+
     public UserBinding(User user, List<Role> roles) {
         this.user = requireNonNull(user, "user must not be null");
         this.roles = unmodifiableList(requireNonNull(roles, "roles must not be null"));
