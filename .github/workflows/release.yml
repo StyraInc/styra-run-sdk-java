@@ -21,6 +21,11 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: build
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          junit_files: "*/build/test-results/**/*.xml"
       - name: Copy release artifacts
         run: |
           mkdir release
