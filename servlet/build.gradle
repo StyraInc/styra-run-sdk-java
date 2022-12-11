@@ -28,3 +28,14 @@ dependencies {
 test {
     useJUnitPlatform()
 }
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            pom {
+                description = 'The Styra Run Java SDK Servlet library'
+            }
+            from(components.java)
+        }
+    }
+}
