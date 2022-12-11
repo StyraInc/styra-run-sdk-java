@@ -33,6 +33,7 @@ jobs:
           mkdir release
           cp core/build/libs/*.jar release
           cp sdk/build/libs/*.jar release
+          cp servlet/build/libs/*.jar release
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
