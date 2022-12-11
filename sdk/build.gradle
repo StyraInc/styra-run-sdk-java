@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'java-library'
     id 'groovy'
 }
 
@@ -18,18 +19,18 @@ compileTestJava {
 }
 
 dependencies {
-    implementation project(':styra-run-sdk-core')
+    api project(':styra-run-sdk-core')
 
     testImplementation project(':styra-run-sdk-core').sourceSets.test.output
     testImplementation 'org.apache.groovy:groovy:4.0.6'
     testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
-    testImplementation 'org.slf4j:slf4j-api:2.0.3'
+    testImplementation 'org.slf4j:slf4j-api:2.0.5'
     testImplementation('com.squareup.okhttp3:mockwebserver:4.10.0')
     testImplementation('com.squareup.okhttp3:okhttp-tls:4.10.0')
     testImplementation('com.google.code.tempus-fugit:tempus-fugit:1.1')
-    testRuntimeOnly 'net.bytebuddy:byte-buddy:1.12.18'
+    testRuntimeOnly 'net.bytebuddy:byte-buddy:1.12.19'
     testRuntimeOnly 'org.objenesis:objenesis:3.3'
-    testRuntimeClasspath 'ch.qos.logback:logback-classic:1.4.4'
+    testRuntimeClasspath 'ch.qos.logback:logback-classic:1.4.5'
 }
 
 test {

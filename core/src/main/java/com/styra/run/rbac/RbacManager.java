@@ -19,7 +19,12 @@ import static com.styra.run.utils.Url.joinPath;
 
 /**
  * Manager of RBAC bindings maintained in Styra Run.
+ * <p>
+ * All functions on this manager that make requests to Styra Run, take a {@link TenantSession},
+ * which is the <code>input</code> value that will be sent on all preemptive authorization checks made to Styra Run;
+ * i.e. queries to the policy rule at {@link #AUTHZ_PATH}.
  */
+// TODO: Add event listeners
 public class RbacManager {
     public static final String AUTHZ_PATH = "rbac/manage/allow";
     private static final String ROLES_PATH = "rbac/roles";
@@ -47,7 +52,7 @@ public class RbacManager {
     /**
      * Get the {@link UserBinding user-binding} for the provided {@link User}.
      *
-     * @param user the {@link User} to get the {@link UserBinding} for
+     * @param user    the {@link User} to get the {@link UserBinding} for
      * @param session the {@link TenantSession session} information authorizing the request for a given tenant
      * @return a {@link CompletableFuture} for the action
      */
@@ -61,7 +66,7 @@ public class RbacManager {
      * Set the {@link UserBinding user-binding} for a {@link User}.
      *
      * @param userBinding the {@link UserBinding} to set
-     * @param session the {@link TenantSession session} information authorizing the request for a given tenant
+     * @param session     the {@link TenantSession session} information authorizing the request for a given tenant
      * @return a {@link CompletableFuture} for the action
      */
     public CompletableFuture<Void> putUserBinding(UserBinding userBinding, TenantSession session) {
@@ -77,7 +82,7 @@ public class RbacManager {
     /**
      * Set the user-binding for a {@link User}.
      *
-     * @param user the {@link User} to delete the user-binding for
+     * @param user    the {@link User} to delete the user-binding for
      * @param session the {@link TenantSession session} information authorizing the request for a given tenant
      * @return a {@link CompletableFuture} for the action
      */

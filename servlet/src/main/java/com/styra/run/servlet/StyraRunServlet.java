@@ -1,9 +1,11 @@
-package com.styra.run;
+package com.styra.run.servlet;
 
+import com.styra.run.ApiError;
+import com.styra.run.StyraRun;
 import com.styra.run.exceptions.AuthorizationException;
-import com.styra.run.session.InputTransformer;
+import com.styra.run.servlet.session.NoSessionManager;
+import com.styra.run.servlet.session.SessionManager;
 import com.styra.run.session.Session;
-import com.styra.run.session.SessionManager;
 import jakarta.servlet.AsyncContext;
 import jakarta.servlet.ReadListener;
 import jakarta.servlet.ServletException;
@@ -21,11 +23,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
 
+import static com.styra.run.ApiError.BAD_REQUEST_CODE;
+import static com.styra.run.ApiError.INTERNAL_ERROR_CODE;
+import static com.styra.run.ApiError.UNAUTHORIZED_CODE;
 import static com.styra.run.utils.Types.cast;
 
 /**
  * An abstract, asynchronous servlet implemented by all Styra Run SDK servlets.
- *
+ * <p>
  * If the servlet isn't directly instantiated by constructor, the following services can be injected by attribute:
  *
  * <ul>
@@ -37,35 +42,25 @@ import static com.styra.run.utils.Types.cast;
  *     <li>
  *          {@link #SESSION_MANAGER_ATTR}: {@link SessionManager}
  *          <br>
- *          Optional; {@link SessionManager#noSessionManager()} is used by default.
- *     </li>
- *     <li>
- *          {@link #INPUT_TRANSFORMER_ATTR}: {@link InputTransformer}
- *          <br>
- *          Optional; {@link InputTransformer#identity()} is used by default.
+ *          Optional; {@link NoSessionManager} is used by default.
  *     </li>
  * </ul>
  */
-public abstract class StyraRunServlet extends HttpServlet {
+public abstract class StyraRunServlet<S extends Session> extends HttpServlet {
     public static final String STYRA_RUN_ATTR = "com.styra.run.styra-run";
     public static final String SESSION_MANAGER_ATTR = "com.styra.run.session-manager";
-    public static final String INPUT_TRANSFORMER_ATTR = "com.styra.run.input-transformer";
-    private static final SessionManager<Session> DEFAULT_SESSION_MANAGER = SessionManager.noSessionManager();
-    private static final InputTransformer<Session> DEFAULT_INPUT_TRANSFORMER = InputTransformer.identity();
+    private static final SessionManager<Session> DEFAULT_SESSION_MANAGER = NoSessionManager.getInstance();
 
     protected final StyraRun styraRun;
-    private volatile SessionManager<Session> sessionManager;
-    private volatile InputTransformer<Session> inputTransformer;
-
+    private volatile SessionManager<S> sessionManager;
 
     public StyraRunServlet() {
-        this(null, null, null);
+        this(null, null);
     }
 
-    protected StyraRunServlet(StyraRun styraRun, SessionManager<Session> sessionManager, InputTransformer<Session> inputTransformer) {
+    protected StyraRunServlet(StyraRun styraRun, SessionManager<S> sessionManager) {
         this.styraRun = styraRun;
         this.sessionManager = sessionManager;
-        this.inputTransformer = inputTransformer;
     }
 
     protected StyraRun getStyraRun() throws ServletException {
@@ -77,26 +72,15 @@ public abstract class StyraRunServlet extends HttpServlet {
                 .orElseThrow(() -> new ServletException(String.format("No '%s' attribute on servlet context", STYRA_RUN_ATTR)));
     }
 
-    protected SessionManager<Session> getSessionManager() throws ServletException {
+    protected SessionManager<S> getSessionManager() throws ServletException {
         if (sessionManager == null) {
 
             //noinspection unchecked
             sessionManager = Optional.ofNullable(cast(SessionManager.class, getServletConfig().getServletContext().getAttribute(SESSION_MANAGER_ATTR),
-                            () -> new ServletException(String.format("'%s' attribute on servlet context was not SessionManager type", INPUT_TRANSFORMER_ATTR))))
+                            () -> new ServletException(String.format("'%s' attribute on servlet context was not SessionManager type", SESSION_MANAGER_ATTR))))
                     .orElse(DEFAULT_SESSION_MANAGER);
         }
-        return (SessionManager<Session>) sessionManager;
-    }
-
-    protected InputTransformer<Session> getInputTransformer() throws ServletException {
-        if (inputTransformer == null) {
-
-            //noinspection unchecked
-            inputTransformer = Optional.ofNullable(cast(InputTransformer.class, getServletConfig().getServletContext().getAttribute(INPUT_TRANSFORMER_ATTR),
-                    () -> new ServletException(String.format("'%s' attribute on servlet context was not InputSupplier type", INPUT_TRANSFORMER_ATTR))))
-                    .orElse(DEFAULT_INPUT_TRANSFORMER);
-        }
-        return inputTransformer;
+        return sessionManager;
     }
 
     protected void handleAsync(HttpServletRequest request, HttpServletResponse response, OnReady onReady) throws IOException {
@@ -192,15 +176,27 @@ public abstract class StyraRunServlet extends HttpServlet {
             return;
         }
 
+        getServletContext().log(message, t);
+        if (t instanceof AuthorizationException) {
+            writeErrorJsonResponse(new ApiError(UNAUTHORIZED_CODE, "Unauthorized"),
+                    response, HttpServletResponse.SC_FORBIDDEN, context);
+        } if (t instanceof BadRequestException) {
+            writeErrorJsonResponse(new ApiError(BAD_REQUEST_CODE, "Bad request"),
+                    response, HttpServletResponse.SC_BAD_REQUEST, context);
+        } else {
+            writeErrorJsonResponse(new ApiError(INTERNAL_ERROR_CODE, "Internal server error"),
+                    response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, context);
+        }
+    }
+
+    protected void writeErrorJsonResponse(ApiError error, HttpServletResponse response, int statusCode, AsyncContext context) {
         try {
-            getServletContext().log(message, t);
-            if (t instanceof AuthorizationException) {
-                response.sendError(HttpServletResponse.SC_FORBIDDEN);
-            } else {
-                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            }
-        } catch (IOException e) {
-            getServletContext().log("Error", e);
+            response.setStatus(statusCode);
+            response.setContentType("application/json");
+            response.getOutputStream()
+                    .write(getStyraRun().getJson().from(error.toMap()).getBytes(StandardCharsets.UTF_8));
+        } catch (IOException | ServletException e) {
+            getServletContext().log("Failed to send JSON error response", e);
         } finally {
             context.complete();
         }
@@ -212,7 +208,7 @@ public abstract class StyraRunServlet extends HttpServlet {
             response.setContentType("application/json");
             out.write(getStyraRun().getJson().from(data).getBytes(StandardCharsets.UTF_8));
         } catch (IOException | ServletException e) {
-            handleError("Failed to marshal JSON response", e, context, response);
+            handleError("Failed to send JSON response", e, context, response);
         } finally {
             context.complete();
         }

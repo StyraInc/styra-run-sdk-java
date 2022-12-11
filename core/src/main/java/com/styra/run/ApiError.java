@@ -4,9 +4,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import static com.styra.run.utils.Null.ifNotNull;
 import static com.styra.run.utils.Null.map;
 
 public class ApiError {
+    public static final String BAD_REQUEST_CODE = "bad_request";
+    public static final String UNAUTHORIZED_CODE = "service_unauthorized";
+    public static final String INTERNAL_ERROR_CODE = "internal_error";
+
     private static final String CODE_KEY = "code";
     private static final String MESSAGE_KEY = "message";
     private static final ApiError EMPTY = new ApiError(null, null);
@@ -51,6 +56,13 @@ public class ApiError {
         attributes.put(CODE_KEY, code);
         attributes.put(MESSAGE_KEY, message);
         return new Result<>(null, attributes);
+    }
+
+    public Map<String, ?> toMap() {
+        Map<String, String> map = new HashMap<>();
+        ifNotNull(code, c -> map.put(CODE_KEY, c));
+        ifNotNull(message, m -> map.put(MESSAGE_KEY, m));
+        return map;
     }
 
     @Override

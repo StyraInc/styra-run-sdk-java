@@ -69,11 +69,11 @@ public class StyraRun implements AutoCloseable {
         this.batchQueryItemsMax = batchQueryItemsMax;
     }
 
-    Json getJson() {
+    public Json getJson() {
         return json;
     }
 
-    ApiClient getApiClient() {
+    protected ApiClient getApiClient() {
         return apiClient;
     }
 
@@ -107,7 +107,7 @@ public class StyraRun implements AutoCloseable {
                 .thenApply(this::handleResponse)
                 .thenApply(Result::fromResponseMap)
                 .thenApply((result) -> {
-                    logger.debug("Query: path='{}'; input={}; result={}", path, input, result);
+                    logger.trace("Query: path='{}'; input={}; result={}", path, input, result);
                     return result;
                 });
     }
@@ -154,6 +154,8 @@ public class StyraRun implements AutoCloseable {
             throw new IllegalArgumentException("items must not be empty");
         }
 
+        logger.trace("Batch query: items='{}'; input={}", items, globalInput);
+
         List<BatchQuery> chunks = new BatchQuery(items, globalInput)
                 .chunk(batchQueryItemsMax);
 
@@ -174,7 +176,7 @@ public class StyraRun implements AutoCloseable {
                     return result;
                 })
                 .thenApply((result) -> {
-                    logger.debug("Batch query: items='{}'; input={}; result={}", items, globalInput, result);
+                    logger.trace("Batch query: items='{}'; input={}; result={}", items, globalInput, result);
                     return result;
                 });
     }
@@ -239,7 +241,7 @@ public class StyraRun implements AutoCloseable {
         return query(path, input)
                 .thenApply((predicate::test))
                 .thenApply((allowed) -> {
-                    logger.debug("Check: path='{}'; input={}; allowed={}", path, input, allowed);
+                    logger.trace("Check: path='{}'; input={}; allowed={}", path, input, allowed);
                     return allowed;
                 });
     }
@@ -286,7 +288,7 @@ public class StyraRun implements AutoCloseable {
                     }
                 })
                 .thenApply((result) -> {
-                    logger.debug("GET data: path='{}'; result={}", path, result);
+                    logger.trace("GET data: path='{}'; result={}", path, result);
                     return result;
                 });
     }
@@ -310,7 +312,7 @@ public class StyraRun implements AutoCloseable {
                 .thenApply(this::handleResponse)
                 .thenApply(Result::empty)
                 .thenApply((result) -> {
-                    logger.debug("PUT data: path='{}'; data='{}'; result={}", path, data, result);
+                    logger.trace("PUT data: path='{}'; data='{}'; result={}", path, data, result);
                     return result;
                 });
     }
@@ -330,7 +332,7 @@ public class StyraRun implements AutoCloseable {
                 .thenApply(this::handleResponse)
                 .thenApply(Result::empty)
                 .thenApply((result) -> {
-                    logger.debug("DELETE data: path='{}'; result={}", path, result);
+                    logger.trace("DELETE data: path='{}'; result={}", path, result);
                     return result;
                 });
     }

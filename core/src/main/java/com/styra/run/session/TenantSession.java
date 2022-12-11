@@ -15,17 +15,17 @@ import static com.styra.run.utils.Null.firstNonNull;
 /**
  * A tenant-session containing a required tenant identifier, and an optional subject identifier.
  */
-public class TenantSession extends MapInput<String, Object> implements Session {
-    private static final String SUBJECT_KEY = "subject";
-    private static final String TENANT_KEY = "tenant";
+public class TenantSession extends MapInput<String, Object> implements MapInputSession {
+    public static final String SUBJECT_KEY = "subject";
+    public static final String TENANT_KEY = "tenant";
 
     public TenantSession(String subject, String tenant) {
         super(createMap(subject,
                 requireNotEmpty(tenant, "tenant must not be null or empty")));
     }
 
-    private TenantSession(Map<String, Object> map) {
-        super(require(map, (m) -> m.containsKey(TENANT_KEY),
+    public TenantSession(Map<String, Object> map) {
+        super(require(map, (m) -> m != null && m.containsKey(TENANT_KEY),
                 String.format("map doesn't contain %s entry", TENANT_KEY)));
     }
 
@@ -51,5 +51,10 @@ public class TenantSession extends MapInput<String, Object> implements Session {
 
     public String getTenant() {
         return (String) getValue().get(TENANT_KEY);
+    }
+
+    @Override
+    public MapInput<String, ?> toInput() {
+        return this;
     }
 }

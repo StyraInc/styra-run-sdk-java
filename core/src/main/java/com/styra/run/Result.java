@@ -5,6 +5,7 @@ import com.styra.run.utils.Null;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -12,7 +13,6 @@ import java.util.stream.Collectors;
 
 import static com.styra.run.utils.Lambdas.CheckedValue.tryWrap;
 import static com.styra.run.utils.Lambdas.CheckedValue.unwrapOrThrow;
-import static java.util.Collections.singletonMap;
 
 /**
  * A <code>Result</code> as returned from calls to the Styra Run API.
@@ -61,6 +61,10 @@ public class Result<T> implements SerializableAsMap {
                         .collect(Collectors.toMap(
                                 (entry) -> entry.getKey().toString(),
                                 Map.Entry::getValue)));
+    }
+
+    public Result<T> withAttributes(Map<String, ?> attributes) {
+        return new Result<>(value, attributes);
     }
 
     /**
@@ -249,6 +253,11 @@ public class Result<T> implements SerializableAsMap {
             return Collections.emptyMap();
         }
 
-        return singletonMap("result", SerializableAsMap.serialize(value));
+        Map<String, Object> map = new HashMap<>();
+        map.put("result", SerializableAsMap.serialize(value));
+        map.putAll(attributes.entrySet().stream().collect(Collectors.toMap(
+                Map.Entry::getKey,
+                e -> SerializableAsMap.serialize(e.getValue()))));
+        return map;
     }
 }
